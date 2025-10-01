@@ -26,4 +26,19 @@
 
 - Notei que quanto menos recente a epoca for menos informação o website tem.
 - Comecei a tirar os dados da época 2023-24
-- 
+- Fartei-me de fazer tudo manualmente e decidi voltar a pesquisar por formas de fazer isto automáticamente
+- Descubri uma biblioteca chamada Selenium que dá para simular um navegador real e contornar as proteçoes do site
+- Criei um script básico para tentar automatizar a navegação para a página de cada época e extrair as tabelas
+- Alguns problemas que tive para épocas mais antigas:
+  * Faltavam colunas de estatística como xG
+  * Epocas com menos tabelas que as mais recentes
+  * Erros com o merge por causa de dados inconsistentes na coluna 'Equipa'
+
+## 2025-10-01
+
+- Melhorei o script para prevenir erros para extrair apenas os dados existentes em cada época
+- Adicionei lógica para saltar tabelas em falta sem interromper a extração
+- Acabei a fase de recolha de dados com a geração do ficheiro data_completo.csv com as ultimas 20 épocas
+- Comecei a limpar dados do dataset (colunas duplicadas)
+- Terminei a limpeza do dataset e renomei clubes com nomes iguais como 'Gil Vicente' e 'Gil Vicente FC'
+- Acabei agora de recolher todos os dados que preciso para realizar o projeto
