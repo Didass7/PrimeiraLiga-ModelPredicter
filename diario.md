@@ -42,3 +42,13 @@
 - Comecei a limpar dados do dataset (colunas duplicadas)
 - Terminei a limpeza do dataset e renomei clubes com nomes iguais como 'Gil Vicente' e 'Gil Vicente FC'
 - Acabei agora de recolher todos os dados que preciso para realizar o projeto
+
+## 2025-10-11
+
+- Comecei a fazer o relatorio
+- Escrevi a Introdução
+- Comecei a pesquisar artigos e trabalhos identicos para fazer o estado da arte
+
+## 2025-10-14
+
+- Planeamento do Relatorio 
