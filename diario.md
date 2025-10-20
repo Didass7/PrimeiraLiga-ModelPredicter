@@ -48,7 +48,53 @@
 - Comecei a fazer o relatorio
 - Escrevi a Introdução
 - Comecei a pesquisar artigos e trabalhos identicos para fazer o estado da arte
+- A principal fonte que encontrei foi o football-data.co.uk, tem os dados da Liga em CSV com estatísticas de jogo e adds de apostas
+- A segunda principal que encontrei foi o Kaggle, não me pareceu ser uma fonte muito viavel porcausa da qualidade e manutenção. Talvez seja útil mais para a frente para validação
+- Pesquisei sites como OpenFootball e football-data.org. O formato de dados no OpenFootball não é por tabelas e o football-data.org funciona com um API com um nível gratuito limitado
 
-## 2025-10-14
+## 2025-10-13
 
-- Planeamento do Relatorio 
+- Cheguei à conclusão que o football-data.co.uk seria provavelmente a melhor fonte de dados para começar
+- O FBRef é uma boa fonte e tem dados que o football-data.co.uk não tem
+- Se juntasse os dados dos dois poderia criar um conjunto de dados mais robusto
+
+## 2025-10-15
+
+- Hoje pesquisei por sites que tentam resolver o mesmo problema que eu
+- Vi o site "The application of machine learning techniques for predicting football match outcomes: a review" deu-me uma visão dos algoritmos mais comuns (Poisson, Redes Neuronais) e falou sobre a dificuldade em prever empates
+- Também vi o artigo sobre a Primeira Liga no Medium (Paulo Matos). Foi útil por ser algo focado na mesma liga que eu. Usou o FBRef e aplicou a Random Forest e XGBoost, falou também sobre a dificuldade de prever empates. Conseguiu atinger uma percentagem de certidão de 53% - 56%
+
+## 2025-10-16
+
+- Li outro artigo sobre Gradient Boosting (Lewandowsky & Chlebus, 2021). Reforçou a ideia que modelos de gradient boosting como XGBoost e CatBoost são o estado da arte para este tipo de problemas superando outras abordagens
+- Cheguei à conclusão que os modelos de gradient boosting (XGBoost) são a minha melhor opção
+
+## 2025-10-18
+
+- Li uma Tese chamada "Football Match Prediction using Deep Learning" (Shah, 2017). Apresentou o uso de redes Neuronais Recorrentes (LSTMs) para capturar a natureza sequencial do desempenho das equipas só que usava dados que eram proprietários e melhores dos que temos acesso
+- Vi uma Resivão de Bunker et al. (2024). Esta revisão mais recente concluiu que CNNs e LSTMs ainda não conseguiram superar consistentemente o desempenho dos modelos de gradient boost como XGBoost
+- Conclusão do dia: Deep Learning não é tão eficiente como Gradient Boosting
+
+## 2025-10-19
+
+- Pesquisei aplicações com previsão desportiva
+- Comecei pela NerdyTips que é uma aplicação que oferece alguma transparência sobre a sua tecnologia. Menciona um motor de IA baseado em Java ("NT Apex")
+- A app Soccer Predictions Football AI e Sports AI são exemplos de advanced machine learning e não fornecem detalhes
+- Vi também a app BettingPros E Action Network que são plataformas que têm previsões com análise de especialistas
+- Conclui que as apps comerciais tem muito pouca transparencia técnica e isso torna-as uma fonte pouco fiavel para me guiar
+
+## 2025-10-20
+
+- Hoje pesquisei projetos que tentaram fazer o mesmo que eu no github
+- O primeiro que chamou mais à atenção foi o dagbolade/all_leagues-_prediction. Pareceu ser o mais completo, usa gradient boosting e usa um sistema de rating Elo
+- O segundo foi o pawelp0499/football-prediction-model. Usa uma abordagem mais simples com Regressão Logística Multinomial em R.
+- Pelo que vi posso concluir que o padrão testado e comprovado foi o uso de Python, usando Pandas Scikit-learn/XGBoost para modelagem e Flask para uma possível API
+
+## 2025-10-20
+
+- Apos alguns dias a pesquisar fiz um mini resumo com o que conclui:
+  * Dados: combinar football-data.co.uk com os dados do FBRef
+  * Algoritmos: o modelo principal deve ser XGBoost e posso usar um modelo de Regressão Logistica para comparar
+  * Ideias: Criar um sistema de rating Elo para medir a forma das equipas
+  * Avaliação: Devo treinar em épocas passadas e testar nas mais recente para evitar data leakage. Devo usar F1-score para avaliar a previsão de empates e log-loss
+- Posso começar a escrever o estado da arte no relatório 
