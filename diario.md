@@ -97,4 +97,37 @@
   * Algoritmos: o modelo principal deve ser XGBoost e posso usar um modelo de Regressão Logistica para comparar
   * Ideias: Criar um sistema de rating Elo para medir a forma das equipas
   * Avaliação: Devo treinar em épocas passadas e testar nas mais recente para evitar data leakage. Devo usar F1-score para avaliar a previsão de empates e log-loss
-- Posso começar a escrever o estado da arte no relatório 
+- Posso começar a escrever o estado da arte no relatório
+
+## 2025-11-01
+
+- Comecei a escrever o estado da arte no relatório
+- Pesquisei por alternativas para o docs para armazenar fontes dos artigos cientificos que andei a pesquisar
+- Encontrei o Zotero e comecei a configurar e a aprender a usar
+
+## 2025-11-03
+
+- Escrevi mais um bocado do capitulo do estado da arte no relatorio
+- Fui pesquisando de fundo sobre os datasets do football-data.co.uk e comecei a baixar os arquivos por época
+
+## 2025-11-06
+
+- Pesquisei sobre a possibilidade de juntar os dois datasets (FBRef e football-data.co.uk) num único data set
+- Cheguei à conclusão que é possível só que é preciso ter cuidado com a data leakeage, por exemplo:
+  * Previsão de um jogo Benfica-Sporting na 5ª jornada de 2023/2024. Se usarmos estatisticas finais dessa mesma época (do FBRef), iremos estar a dar acesso ao modelo a informações que ainda não aconteceram.
+- Teria que fazer alguma mudança no dataset do FBRef para não haver este problema de data leakage
+- Escrevi mais um bocado do relatorio
+
+## 2025-11-12
+
+- Cheguei à conclusão que os dados do football_data.co.uk serão a espinha dorsal do modelo com as informações jogo a jogo.
+- Os dados do FBRef devem ser usados para contexto historico, ou seja, para prever um jogo da época 2023-2024, alimentamos o modelo com estatísticas agregadas da época 2022-2023
+- Comecei por juntar todos os ficheiros csv do football_data.co.uk que estavam separados por épocas
+- Depois deparei-me com um problema entre os dois datasets. Os nomes das equipas estavam diferentes, ex: Num "Sporting CP" e no outro "Sporting" 
+
+## 2025-11-24
+
+- Decidi avançar com a junção dos dois datasets. O plano é usar o football-data.co.uk como base e adicionar as colunas do FBRef.
+- Tive a analisar os ficheiros e o primeiro passo vai ser uniformizar os nomes das equipas.
+- Vou criar um script para carregar tudo e identificar estas diferenças para criar um dicionário de mapeamento.
+- O objetivo é deixar tudo pronto para depois aplicar o XGBoost.
