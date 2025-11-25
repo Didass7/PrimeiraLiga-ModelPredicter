@@ -125,9 +125,30 @@
 - Comecei por juntar todos os ficheiros csv do football_data.co.uk que estavam separados por épocas
 - Depois deparei-me com um problema entre os dois datasets. Os nomes das equipas estavam diferentes, ex: Num "Sporting CP" e no outro "Sporting" 
 
-## 2025-11-24
+## 2025-11-16
 
 - Decidi avançar com a junção dos dois datasets. O plano é usar o football-data.co.uk como base e adicionar as colunas do FBRef.
 - Tive a analisar os ficheiros e o primeiro passo vai ser uniformizar os nomes das equipas.
 - Vou criar um script para carregar tudo e identificar estas diferenças para criar um dicionário de mapeamento.
+- Identifiquei as diferenças nos nomes das equipas (ex: "Sp Braga" vs "Braga", "Guimaraes" vs "Vitória") e criei o dicionário de mapeamento completo.
+
+## 2025-11-20
+
+- Implementei a lógica de fusão (merge) dos datasets: para cada jogo, juntei as estatísticas do FBRef da época anterior para garantir que o modelo usa apenas dados históricos (evitando data leakage).
+- Corrigi alguns erros de execução (datas inválidas e avisos de performance) e gerei com sucesso o ficheiro `dataset_final_merged.csv`.
 - O objetivo é deixar tudo pronto para depois aplicar o XGBoost.
+
+## 2025-11-23
+
+- Analisei o dataset criado e detetei 3 problemas críticos:
+    1.  **Recém-Promovidos:** Equipas que sobem de divisão não têm histórico na época anterior, gerando `NaNs`.
+    2.  **Lixo:** Colunas `Unnamed` que não servem para nada.
+    3.  **Datas e Odds:** Datas em texto e falta de dados em épocas antigas.
+- Decidi a solução para os recém-promovidos: vou preencher os dados em falta com a **média das 3 piores equipas da época anterior**. É uma aproximação justa (quem sobe costuma lutar para não descer).
+- Atualizei o script `preparacao_dados.ipynb` para incluir esta lógica de imputação e limpar o resto.
+
+## 2025-11-25
+
+- Renomeei todas as colunas para Português (sem abreviaturas) para facilitar a leitura.
+- Criei o `DICIONARIO_DADOS.md` para documentar o significado de cada coluna.
+
