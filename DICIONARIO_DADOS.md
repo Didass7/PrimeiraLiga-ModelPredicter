@@ -43,6 +43,7 @@ O padrão de nomeação é `Odd_[Resultado]_[CasaApostas]`.
 *   `WilliamHill`
 *   `VCBet` (BetVictor antigo)
 *   `Betfair`
+*   `BetfairEx` (Betfair Exchange)
 *   `Pinnacle`
 *   `1xBet`
 *   `BetMGM`
@@ -73,6 +74,17 @@ O padrão de nomeação é `Odd_[Resultado]_[CasaApostas]`.
 Odds registadas momentos antes do jogo começar. Têm o prefixo `Odd_Fecho_`.
 Ex: `Odd_Fecho_Casa_Bet365`, `Odd_Fecho_Mais2.5_Pinnacle`.
 
+## Betfair Exchange (Códigos Específicos)
+Colunas específicas da Betfair Exchange (Intercâmbio).
+
+| Coluna | Descrição |
+| :--- | :--- |
+| `BFEH`, `BFED`, `BFEA` | Odds Betfair Exchange para Casa (Home), Empate (Draw), Visitante (Away). |
+| `BFDH`, `BFDD`, `BFDA` | *Dados adicionais Betfair Exchange (possivelmente variações ou volumes).* |
+| `BFDCH`, `BFDCD`, `BFDCA` | *Dados adicionais Betfair Exchange (possivelmente variações ou volumes).* |
+| `Odd_..._BetfairEx` | Odds de mercados específicos (Mais/Menos, Handicap) na Betfair Exchange. |
+| `Odd_Fecho_..._BetfairEx` | Odds de fecho na Betfair Exchange. |
+
 ## Estatísticas Históricas (Contexto)
 Estas colunas vêm do FBRef e referem-se à **época anterior**.
 Estão divididas em `Home_hist_...` (para a equipa da casa) e `Away_hist_...` (para a equipa visitante).
@@ -84,6 +96,17 @@ Exemplos das principais métricas:
 | `Home_hist_Pontos` | Pontos conquistados pela equipa da casa na época anterior. |
 | `Home_hist_GolosMarcados` | Total de golos marcados na época anterior. |
 | `Home_hist_xG` | "Expected Goals" (Golos Esperados) na época anterior. |
+
+### Categorias de Métricas FBRef
+As métricas cobrem diversas áreas do jogo. Exemplos de sufixos comuns:
+
+*   **Ataque:** `..._Remates`, `..._RematesÀBaliza`, `..._AcoesQueCriamRemates`, `..._GolosEsperados` (xG).
+*   **Passe:** `..._PassesCompletos`, `..._PassesProgressivos`, `..._PassesChave`, `..._Assistencias`.
+*   **Defesa:** `..._Desarmes`, `..._Intercecoes`, `..._Bloqueamentos`, `..._Alivios`, `..._Pressao`.
+*   **Posse:** `..._PosseDeBola`, `..._ToquesNaBola`, `..._ConducoesProgressivas`.
+*   **Geral:** `..._JogosDisputados`, `..._Vitórias`, `..._Empates`, `..._Derrotas`.
+
+> **Nota:** Todas estas métricas são médias ou totais acumulados da **época anterior** à do jogo em questão. |
 
 ## Colunas Auxiliares
 | Nome | Descrição |
