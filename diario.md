@@ -147,8 +147,64 @@
 - Decidi a solução para os recém-promovidos: vou preencher os dados em falta com a **média das 3 piores equipas da época anterior**. É uma aproximação justa (quem sobe costuma lutar para não descer).
 - Atualizei o script `preparacao_dados.ipynb` para incluir esta lógica de imputação e limpar o resto.
 
+
 ## 2025-11-25
 
 - Renomeei todas as colunas para Português (sem abreviaturas) para facilitar a leitura.
 - Criei o `DICIONARIO_DADOS.md` para documentar o significado de cada coluna.
 
+## 2025-11-30
+- Criei o notebook `Modelacao_XGBoost.ipynb` para começar a parte mais interessante: treinar o modelo! Vou começar por usar os dados históricos e as odds para ver se consigo bater as casas de apostas.
+
+## 2025-12-10
+  * **Target:** 0 (Casa), 1 (Empate), 2 (Visitante).
+  * **Features:** Estou a usar as Odds (que já trazem muita informação do mercado) e as médias da época anterior do FBRef (para evitar data leakage, i.e., não usar dados do futuro para prever o passado).
+  * **Split:** Treino até 2023, Teste na época 2023/24. É a forma mais honesta de validar porque simula a previsão real.
+  * **Algoritmo:** XGBoost com `multi:softprob`. Basicamente ele cria centenas de árvores de decisão onde cada uma tenta corrigir os erros da anterior.
+
+## 2025-12-15
+- Corri o modelo e tive 55% de accuracy no conjunto de teste. Não é mau para começar.
+- O modelo falha muito a prever os empates, o que já estava à espera. Vou ter que investigar como melhorar isto.
+
+## 2025-12-18
+- Criei baselines para comparar resultados:
+  * **Regressão Logística:** 57% Accuracy (superior ao XGBoost inicial!). Isto sugere que o problema pode ser parcialmente linear ou que o XGBoost precisa de melhor afinação.
+  * **Árvore de Decisão:** 53% Accuracy.
+  * Conclusão: O XGBoost (55%) não está a "aprender" muito mais do que uma simples regressão linear das odds. Tenho de trabalhar nas features.
+
+## 2025-12-23
+**[DIAGNÓSTICO XGBoost]**
+  * **Overfitting Massivo:** Accuracy Treino 95% vs Teste 52%. O modelo decorou os dados de treino completamente.
+  * **Feature Importance:** O modelo está dependente quase exclusivamente de `Home_hist_Pontos` e `Away_hist_Pontos`.
+  * **Próximos Passos:** Preciso de Regularização (reduzir `max_depth`, aumentar `min_child_weight`) e talvez reduzir o número de features para evitar ruído.
+
+## 2025-12-26
+- **[OTIMIZAÇÃO XGBoost]**
+  * Executei `GridSearchCV` para encontrar os melhores hiperparâmetros.
+  * **Melhores Parâmetros:** `max_depth=3` (reduzido de 6), `learning_rate=0.01` (mais lento), `n_estimators=200`.
+  * **Resultados:**
+    * **Accuracy Treino:** 57% (caiu de 95%) -> **Overfitting Eliminado!**
+    * **Accuracy Teste:** 57% (subiu de 52%) -> **Melhoria Real!**
+  * **Conclusão:** O modelo está agora estável e generaliza bem. A performance (57%) igualou a Regressão Logística, o que indica que atingimos o limite das features atuais. O modelo continua a não conseguir prever Empates (Recall 0.00).
+
+## 2025-12-27
+  - Como a Professora tinha referido deveria tentar arranjar os dados dos clubes que são promovidos da liga 2 para preencher os dados em falta.
+  - Resultado: A fonte `football-data.co.uk` não disponibiliza dados da Segunda Liga Portuguesa
+  - Decisão: Manter a estratégia de imputação (média das 3 piores equipas da época anterior) para evitar atrasos com novos scrapers. O foco será criar features de "Forma Recente".
+
+## 2025-12-31
+- **[TESTE: REMOVER ODDS]**
+  * Removi as Odds das features para ver se "estragavam" o modelo.
+  * **Resultado Surpreendente:** A Accuracy manteve-se exatamente em 57% sem Odds!
+  * **Conclusão:** As features estatísticas já capturam a mesma informação que as odds. O problema não é "Odds vs Stats", é o desequilíbrio de classes (ninguém acerta empates).
+
+- **[FEATURE ENGINEERING 2.0]**
+  * Adicionei novas métricas avançadas que estavam adormecidas no dataset: xG (Golos Esperados), Posse de Bola, Passes Progressivos e, crucialmente, **"Forma de Empates"** (quantos empates a equipa teve nos últimos 5 jogos).
+  * `Home_hist_PassesProgressivos` mostrou-se logo uma das TOP 10 features mais importantes.
+
+- **[ESTRATÉGIA "BALANCED" (O Pulo do Gato)]**
+  * Para resolver o problema de "Recall 0.00" nos Empates, usei `class_weight='balanced'` no XGBoost.
+  * **Antes:** 9% de acerto em Empates.
+  * **Depois:** **47% de acerto em Empates!**
+  * **Trade-off:** A Accuracy geral caiu para 49%, mas o modelo tornou-se muito mais útil para apostas, pois agora identifica oportunidades de odd alta (Empates) em vez de jogar sempre nos favoritos.
+  * Criei o notebook `Modelacao_XGBoost_Balanced.ipynb` para consolidar esta nova abordagem.
