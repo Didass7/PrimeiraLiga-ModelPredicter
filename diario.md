@@ -208,3 +208,42 @@
   * **Depois:** **47% de acerto em Empates!**
   * **Trade-off:** A Accuracy geral caiu para 49%, mas o modelo tornou-se muito mais útil para apostas, pois agora identifica oportunidades de odd alta (Empates) em vez de jogar sempre nos favoritos.
   * Criei o notebook `Modelacao_XGBoost_Balanced.ipynb` para consolidar esta nova abordagem.
+
+## 2026-01-07
+- **[SMOTE IMPLEMENTATION]**
+  - Substitui o método de `sample_weights` por `SMOTE` (Synthetic Minority Over-sampling Technique) para lidar com o desequilíbrio de classes.
+  - O objetivo é gerar dados sintéticos para os empates em vez de apenas dar pesos maiores.
+  - O objetivo é gerar dados sintéticos para os empates em vez de apenas dar pesos maiores.
+
+## 2026-01-08
+  - Atualizei o notebook `Modelacao_XGBoost_Balanced.ipynb` com a nova implementação.
+  - **Resultados SMOTE:**
+    * **Accuracy:** 51% (Melhor que Balanced Weights 49%, pior que Baseline 57%)
+    * **Draw Recall:** 24% (Pior que Balanced Weights 47%, melhor que Baseline 0%)
+    * **Conclusão:** O SMOTE é um meio-termo. Não sacrifica tanto a accuracy geral como o `class_weight='balanced'`, mas também não recupera tantos empates. Parece que simplesmente "forçar" o modelo a ver mais empates (Sample Weights) foi mais eficaz para o objetivo específico de apanhar empates, mesmo com mais falsos positivos.
+  - Criei um notebook separado `Modelacao_XGBoost_ClassWeight.ipynb` para manter a versão com `compute_sample_weight`, permitindo comparar diretamente com a versão SMOTE (`Modelacao_XGBoost_Balanced.ipynb`).
+
+  - **[CLASS WEIGHT VS SMOTE: VERIFICATION & CONCLUSION]**
+    - Executei um script de reprodução para validar a abordagem `class_weight='balanced'`.
+    - **Resultados Confirmados:**
+      * **Class Weight:** Accuracy **49%**, Draw Recall **47%**.
+      * **SMOTE:** Accuracy **51%**, Draw Recall **24%**.
+    - **Trade-off:**
+      * A abordagem **Class Weight** força o modelo a "arriscar" muito mais nos empates. Isso resulta em muitos mais acertos nessa classe (47% vs 24%), mas à custa de errar mais nas previsões de vitórias "fáceis", baixando a accuracy global.
+      * O **SMOTE** cria uma fronteira de decisão mais conservadora.
+    - **Decisão:** Para o objetivo de maximizar o lucro em apostas de empate (que têm odds altas), a abordagem **Class Weight** parece superior apesar da menor accuracy, pois captura quase o dobro dos empates. Manteremos ambos os notebooks para referência.
+
+## 2026-01-10
+
+- **[RANDOM FOREST IMPLEMENTATION]**
+  - Implementei um modelo de `RandomForestClassifier` para comparar com o XGBoost, usando o mesmo setup:
+    - Features: Set Avançado (xG, Posse, Forma, etc.)
+    - Class Weight: `balanced`
+  - **Resultados Surpreendentes:**
+    * **Accuracy:** **50.1%** (Ligeiramente superior ao XGBoost Class Weight de 49.3%)
+    * **Draw Recall:** **48%** (Superior ao XGBoost Class Weight de 47%)
+  - **Conclusão:** O Random Forest mostrou-se o modelo mais equilibrado até agora para o nosso objetivo específico. Conseguiu não só manter a elevada taxa de deteção de empates (que é o nosso foco para odds altas), como ainda melhorou ligeiramente a accuracy geral face à abordagem de Class Weight do XGBoost.
+  - **Ação:** O notebook `Modelacao_RandomForest.ipynb` fica como uma alternativa muito forte para a estratégia de apostas em empates.
+
+## 2026-01-10
+  -  
