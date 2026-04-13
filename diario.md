@@ -1,4 +1,4 @@
-﻿# DiÃ¡rio de Desenvolvimento â€“ Projeto Liga Portuguesa ML
+# DiÃ¡rio de Desenvolvimento â€“ Projeto Liga Portuguesa ML
 
 ## 2025-09-24
 
@@ -265,3 +265,22 @@ andom_state=42\ estava a causar data leakage severo nas minhas estimativas, pois
   * **Nota sobre as Rolling Averages (vs Forma Recente):** Aprofundei o conceito que já tinha começado com as variáveis de forma (como \Casa_Form_Pts5\). Enquanto que as variáveis originais calculam a eficácia em *Tabela* da equipa (Pontos, Vitórias, Golos) nos últimos 5 jogos, estas novas \Rolling_5\ aplicam exatamente a mesma janela temporal mas às **estatísticas de desempenho em campo** (ex: número de Remates, Remates à Baliza, Cantos a favor). Isto dá ao modelo a capacidade de ler a narrativa do jogo e ver se uma equipa está a exercer pressão ofensiva, mesmo nos jogos em que teve azar e perdeu pontos na mesma.
 
   * **Nota sobre a Janela Temporal e as velhas Form5:** Apercebi-me também de um pormenor importante sobre o meu modelo anterior. Eu tinha estipulado a regra de 'strict temporal hold' (só usar dados fechados da época passada para o FBRef), mas as minhas próprias variáveis de \Casa_Form_Pts5\ já quebravam esta regra, porque olhavam para os 5 jogos da época *atual*. Afinal, a semente da solução atual já lá estava! Decidi assumir esta quebra de vez: abandonamos as estastísticas mortas do ano anterior e passamos a calcular tudo (incluindo as variáveis FBRef) usando a janela dos últimos 5 jogos da época corrente, o que nos colou finalmente à verdadeira forma atual das equipas.
+
+## 2026-03-30
+
+- **[TEMPORAL ROLLOUT - PREVISÃO JORNADA A JORNADA]**
+  * A minha professora chamou-me a atenção (e bem) de que fazer predict a test_df (época inteira) num só `.predict()` gera um efeito "bola de neve" enorme quando depois tentamos extrapolar a tabela final do campeonato.
+  * Estruturei uma nova lógica de previsão baseada em "Temporal Rollout":
+    1. Agrupo o conjunto de dados da época de teste pelas Jornadas.
+    2. No arranque da jornada: O modelo prevê os resultados dessa semana e uso essas previsões + simulações dos restantes jogos em falta para prever quem irá ser o campeão (usando os pontos consolidados até àquela data na tabela real).
+    3. No final da mesma jornada: Os resultados REAIS ocorridos nesses jogos são revelados ao modelo (fundidos no `train_df`) e rodo novamente um `.fit()`.
+  * Ganho de Realismo: O modelo nunca prevê uma ronda numa linha temporal alternativa cega, ajustando a sua experiência iterativamente à forma autêntica com que as equipas realmente jogaram nessas mesmas jornadas ao longo do ano.
+  * **[IMPLEMENTAÇÃO TÉCNICA E SETUP DO NOTEBOOK]**
+    * Deteção de falha no dataset alvo: o ficheiro `dataset_features_avancadas.csv` apenas possuía a "Data" pelo que desenvolvi e incorporei internamente o processo de agrupamento dinâmico que cria a `Epoca` (Jul-Jun) e a verdadeira `Jornada` de campeonato analisando o número de jogos passados de cada dupla de equipas num duelo.
+    * O ficheiro **`Notebooks/Modelacao_Temporal_Rollout.ipynb`** foi criado na íntegra para testar este paradigma metodológico.
+    * Preserva exatamente as mesmas **48 features de simulação super-avançadas** (Poisson, Elo, xG, Rolling Averages).
+    * **[CORREÇÃO DE BUG: Acumulação de Pontos entre Épocas]**
+      * Detetei visualmente que a abordagem de *split* cronológica de 80/20 (`int(len(df) * 0.8)`) enviesou o Notebook original ao integrar múltiplas épocas desportivas dispares dentro do próprio `test_df`. Isto causou uma anomalia na agregação da variável estática `Jornada`, em que o ciclo iterava e simulava os jogos de anos diferentes ao mesmo tempo, somando infinitamente pontos inter-épocas à mesma tabela classificativa (resultando num suposto Campeão com mais de 200 pontos no final da época de teste).
+      * **Resolução Escrita**: A divisão *hardcoded* de percentagens foi removida a favor de um filtro restrito e orgânico. O `train_df` assimilou nativamente o histórico onde a `Epoca != 2023-2024`, e isolou-se de forma absoluta e asséptica a Época **2023-2024** para o `test_df`.
+    * Mantém a modelação ideal que focava na melhor identificação dos lucros em odds altas (Empates): `RandomForestClassifier(class_weight='balanced', max_depth=10, n_estimators=100)`.
+    * O Pipeline culmina agora devolvendo a Accuracy Real estática bem como a re-visualização da Matriz de Confusão e listando de forma linearmente contida os 80-90 pts orgânicos do pretenso campeão da Época 23/24 no fecho de cada ronda.
