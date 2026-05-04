@@ -284,3 +284,14 @@ andom_state=42\ estava a causar data leakage severo nas minhas estimativas, pois
       * **Resolução Escrita**: A divisão *hardcoded* de percentagens foi removida a favor de um filtro restrito e orgânico. O `train_df` assimilou nativamente o histórico onde a `Epoca != 2023-2024`, e isolou-se de forma absoluta e asséptica a Época **2023-2024** para o `test_df`.
     * Mantém a modelação ideal que focava na melhor identificação dos lucros em odds altas (Empates): `RandomForestClassifier(class_weight='balanced', max_depth=10, n_estimators=100)`.
     * O Pipeline culmina agora devolvendo a Accuracy Real estática bem como a re-visualização da Matriz de Confusão e listando de forma linearmente contida os 80-90 pts orgânicos do pretenso campeão da Época 23/24 no fecho de cada ronda.
+
+## 2026-04-13
+
+- **[RANDOM FOREST - PIPELINE DE PREVISÃO DE JOGOS]**
+  * Consolidei a pipeline de previsão com Random Forest e criei notebooks/utilitários de apoio para trabalhar jornada a jornada.
+  * Atualizei o dataset `dataset_final_merged_v2.csv` para suportar o fluxo de treino/validação e as features necessárias.
+  * Scripts auxiliares como o `add_jornada.py` ajudam a garantir que a identificação de `Jornada`/ordenação temporal fica consistente.
+
+- **[SIMULAÇÃO MONTE CARLO - PROBABILIDADE DE CAMPEÃO]**
+  * Criei o script `Notebooks/Simulacao_MonteCarlo.py` para simular múltiplos cenários de resultados (usando previsões do Random Forest) e estimar probabilidades de título ao longo da época.
+  * Objetivo: transformar previsões de jogos isolados numa estimativa agregada (e mais interpretável) do desfecho do campeonato.
