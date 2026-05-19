@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Liga Predictor — Simulação Monte Carlo para prever o campeão da Primeira Liga Portuguesa usando Machine Learning.">
+    <meta name="theme-color" content="#06090f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Liga Predictor — Simulação Monte Carlo</title>
+    <link rel="icon" type="image/png" href="/static/logo.png">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+    <!-- ===== HEADER ===== -->
+    <header class="header">
+        <div class="container">
+            <div class="header__inner">
+                <img src="/static/logo.png" alt="Liga Predictor Logo" class="header__logo" id="app-logo">
+                <div class="header__text">
+                    <h1>Machine Learning Aplicado à Previsão Desportiva</h1>
+                    <p>Simulação Monte Carlo · Primeira Liga Portuguesa</p>
+                </div>
+                <div class="header__badge">
+                    <span class="dot"></span>
+                    <span>Época <span id="info-epoca">2023-2024</span></span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <!-- ===== CONTROLS ===== -->
+            <section class="controls" id="controls-panel">
+                <div class="controls__title">
+                    <span class="icon">⚙️</span>
+                    Painel de Controlo
+                </div>
+
+                <div class="controls__grid">
+                    <!-- Jornada Slider -->
+                    <div class="control-group">
+                        <label for="jornada-slider">Iniciar simulação na Jornada</label>
+                        <div class="control-group__value">
+                            <span id="jornada-value">17</span>
+                            <span class="unit">/ 34</span>
+                        </div>
+                        <input type="range" id="jornada-slider" min="2" max="34" value="17" step="1">
+                        <div class="range-labels">
+                            <span id="jornada-min-label">2</span>
+                            <span id="jornada-max-label">34</span>
+                        </div>
+                    </div>
+
+                    <!-- Simulações Slider -->
+                    <div class="control-group">
+                        <label for="simulacoes-slider">Número de simulações</label>
+                        <div class="control-group__value">
+                            <span id="simulacoes-value">1 000</span>
+                            <span class="unit">iterações</span>
+                        </div>
+                        <input type="range" id="simulacoes-slider" min="100" max="5000" value="1000" step="100">
+                        <div class="range-labels">
+                            <span>100</span>
+                            <span>5 000</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulate Button -->
+                <button class="btn-simulate" id="btn-simulate" onclick="runSimulation()">
+                    <span class="spinner"></span>
+                    <span class="btn-text" id="btn-text">Simular Campeonato</span>
+                </button>
+            </section>
+
+            <!-- ===== ERROR ===== -->
+            <div class="error-box" id="error-box"></div>
+
+            <!-- ===== LOADING ===== -->
+            <div class="loading-overlay" id="loading-overlay">
+                <div class="loading-overlay__spinner"></div>
+                <div class="loading-overlay__text" id="loading-text">A carregar o dataset e treinar o modelo...</div>
+                <div class="loading-overlay__sub">Isto pode demorar alguns segundos</div>
+            </div>
+
+            <!-- ===== RESULTS ===== -->
+            <section class="results" id="results">
+                <!-- Results Header -->
+                <div class="results__header">
+                    <h2 class="results__title">📊 Resultados da Simulação</h2>
+                    <div class="results__meta">
+                        <div class="meta-tag">⏱ <span class="value" id="meta-tempo">-</span></div>
+                        <div class="meta-tag">🔄 <span class="value" id="meta-sims">-</span> sims</div>
+                        <div class="meta-tag">⚽ <span class="value" id="meta-jogos">-</span> jogos</div>
+                        <div class="meta-tag">📅 J<span class="value" id="meta-jornadas">-</span></div>
+                    </div>
+                </div>
+
+                <!-- Feature Decay Banner -->
+                <div class="decay-banner" id="decay-banner">
+                    <div class="decay-banner__icon">🔬</div>
+                    <div class="decay-banner__content">
+                        <div class="decay-banner__title" id="decay-title">Feature Decay Ativo</div>
+                        <div class="decay-banner__desc" id="decay-desc">—</div>
+                    </div>
+                    <div class="decay-banner__meter">
+                        <div class="decay-banner__meter-label">Confiança Rolling</div>
+                        <div class="decay-banner__meter-track">
+                            <div class="decay-banner__meter-fill" id="decay-meter-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="decay-banner__meter-value" id="decay-meter-value">—</div>
+                    </div>
+                </div>
+
+                <!-- Big 3 Cards -->
+                <div class="big3">
+                    <div class="big3__card big3__card--sporting stagger-in" id="card-sporting"
+                        style="animation-delay: 0ms;">
+                        <div class="big3__rank">-</div>
+                        <div class="big3__name">Sporting CP</div>
+                        <div class="big3__prob">--%</div>
+                        <div class="big3__label">probabilidade de título</div>
+                        <div class="big3__pts">-- pts acumulados</div>
+                    </div>
+                    <div class="big3__card big3__card--benfica stagger-in" id="card-benfica"
+                        style="animation-delay: 100ms;">
+                        <div class="big3__rank">-</div>
+                        <div class="big3__name">Benfica</div>
+                        <div class="big3__prob">--%</div>
+                        <div class="big3__label">probabilidade de título</div>
+                        <div class="big3__pts">-- pts acumulados</div>
+                    </div>
+                    <div class="big3__card big3__card--porto stagger-in" id="card-porto"
+                        style="animation-delay: 200ms;">
+                        <div class="big3__rank">-</div>
+                        <div class="big3__name">Porto</div>
+                        <div class="big3__prob">--%</div>
+                        <div class="big3__label">probabilidade de título</div>
+                        <div class="big3__pts">-- pts acumulados</div>
+                    </div>
+                </div>
+
+                <!-- Probability Table -->
+                <h3 class="section-title">
+                    <span class="icon">🏆</span>
+                    Probabilidade de Título — Todas as Equipas
+                </h3>
+                <div class="prob-table">
+                    <div class="prob-table__row prob-table__row--header">
+                        <div>#</div>
+                        <div>Equipa</div>
+                        <div>Probabilidade</div>
+                        <div style="text-align:right">%</div>
+                    </div>
+                    <div id="prob-table-body"></div>
+                </div>
+
+                <!-- Feature Importance -->
+                <h3 class="section-title">
+                    <span class="icon">🧠</span>
+                    Variáveis Mais Importantes do Modelo
+                    <span class="decay-badge" id="decay-badge"></span>
+                </h3>
+                <p class="section-subtitle" id="feature-subtitle">As 15 features que mais influenciaram as previsões do
+                    Random Forest nesta simulação.</p>
+                <div class="feature-importance" id="feature-importance-container"></div>
+
+                <!-- Real Standings -->
+                <h3 class="section-title">
+                    <span class="icon">📋</span>
+                    Classificação Real <span id="standings-title-jornada"
+                        style="color: var(--text-muted); font-weight:400; font-size: 0.85rem; margin-left: 0.5rem;"></span>
+                </h3>
+                <div class="standings">
+                    <div class="standings__row standings__row--header">
+                        <div>#</div>
+                        <div>Equipa</div>
+                        <div style="text-align:right">Pts</div>
+                    </div>
+                    <div id="standings-body"></div>
+                </div>
+
+                <!-- Next Matches -->
+                <h3 class="section-title">
+                    <span class="icon">📅</span>
+                    Próximos Jogos a Simular
+                </h3>
+                <div class="matches" id="matches-container"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <div class="container">
+            <p>Machine Learning Aplicado à Previsão Desportiva - Projeto II</p>
+            <p>Diogo Oliveira · ESTCB-IPCB</p>
+            <div class="footer__stack">
+                Random Forest · Monte Carlo · FastAPI · Python
+            </div>
+        </div>
+    </footer>
+
+    <script src="/static/app.js?v=3"></script>
+</body>
+
+</html>

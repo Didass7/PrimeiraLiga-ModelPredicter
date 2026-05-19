@@ -295,3 +295,19 @@ andom_state=42\ estava a causar data leakage severo nas minhas estimativas, pois
 - **[SIMULAÇÃO MONTE CARLO - PROBABILIDADE DE CAMPEÃO]**
   * Criei o script `Notebooks/Simulacao_MonteCarlo.py` para simular múltiplos cenários de resultados (usando previsões do Random Forest) e estimar probabilidades de título ao longo da época.
   * Objetivo: transformar previsões de jogos isolados numa estimativa agregada (e mais interpretável) do desfecho do campeonato.
+
+## 2026-05-19
+
+- **[LIGA PREDICTOR WEB APPLICATION]**
+  * Iniciei a transformação do projeto (anteriormente baseado em scripts Python de simulação Monte Carlo) num Dashboard Web interativo e responsivo.
+  * O backend foi desenvolvido utilizando **FastAPI** para servir a simulação e expor os resultados.
+  * O frontend é uma **Single Page Application (SPA)** nativa com HTML, CSS e Vanilla JavaScript. O dashboard permite configurar dinamicamente parâmetros como a jornada de início e o número de iterações da simulação.
+
+- **[VISUALIZAÇÃO DE FEATURE IMPORTANCE]**
+  * Implementada a capacidade de comunicar e renderizar as "Variáveis Mais Importantes do Modelo" no frontend. Os dados e métricas provêm do backend e são atualizados visualmente consoante o contexto da simulação.
+
+- **[FEATURE DECAY LOGIC - GESTÃO DAS PRIMEIRAS JORNADAS]**
+  * Diagnóstico: Nas primeiras jornadas (ex: Jornada 1), o modelo sentia falta de dados autênticos da forma atual ("últimos 5 jogos"), o que afetava a fiabilidade e gerava ruído.
+  * Correção: Introdução de uma mecânica de **"Feature Decay"**. Agora, o backend ajusta o peso das variáveis (`rolling features`) de forma progressiva. No arranque do campeonato, o modelo confia predominantemente nos dados agregados da época transata (N-1). À medida que a época avança, o peso transita organicamente para os dados recentes de performance em tempo real.
+  * O frontend foi atualizado para comunicar claramente o estado deste "decay", garantindo transparência ao utilizador quanto à origem da predição em diferentes momentos da época.
+
