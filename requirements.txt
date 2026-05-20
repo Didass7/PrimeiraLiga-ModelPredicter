@@ -7,3 +7,6 @@ uvicorn
 pydantic
 selenium
 webdriver-manager
+undetected-chromedriver
+lxml
+

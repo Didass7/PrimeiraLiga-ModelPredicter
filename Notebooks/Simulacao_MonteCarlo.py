@@ -9,7 +9,7 @@ warnings.filterwarnings("ignore")
 
 def load_and_prepare_data():
     try:
-        df = pd.read_csv(r"d:\Diogo\Ambiente de Trabalho\PROJETO\Datasets\dataset_features_avancadas.csv", low_memory=False)
+        df = pd.read_csv(r"d:\Diogo\Ambiente de Trabalho\PROJETO\Datasets\dataset_features_avancadas.csv", low_memory=False, encoding='utf-8', encoding_errors='replace')
         print("Dataset carregado com sucesso!")
     except FileNotFoundError:
         print("Erro: Ficheiro não encontrado. Verifica o caminho.")
@@ -100,8 +100,16 @@ def main(jornada_alvo, num_simulacoes=1000):
     
     # Treinar modelo (agora sabe o que aconteceu durante a época até à jornada atual)
     print("A treinar modelo Random Forest...")
+    # Treinar modelo (otimizado por Log Loss para Monte Carlo)
     rf_model = RandomForestClassifier(
-        n_estimators=100, max_depth=10, class_weight="balanced", random_state=42, n_jobs=-1
+        n_estimators=100,
+        max_depth=4,
+        min_samples_leaf=8,
+        min_samples_split=10,
+        max_features=0.2,
+        class_weight="balanced",
+        random_state=42,
+        n_jobs=-1
     )
     rf_model.fit(df_train[FEATURES], df_train["Target"])
     print("Modelo treinado!")

@@ -221,6 +221,40 @@ body::before {
     }
 }
 
+@media (min-width: 1024px) {
+    .controls__grid {
+        grid-template-columns: 1fr 1fr 1fr;
+    }
+}
+
+/* Style for select box in control panel */
+.select-epoca {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-family: var(--font-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    outline: none;
+    transition: var(--transition-fast);
+    margin-top: var(--space-sm);
+    box-sizing: border-box;
+}
+
+.select-epoca:focus, .select-epoca:hover {
+    border-color: var(--accent-green);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+}
+
+.select-epoca option {
+    background: #0c1220; /* Matching var(--bg-secondary) */
+    color: var(--text-primary);
+}
+
 .control-group label {
     display: block;
     font-size: 0.85rem;

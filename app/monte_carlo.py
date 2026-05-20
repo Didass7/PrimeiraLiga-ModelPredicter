@@ -116,7 +116,7 @@ FEATURE_LABELS = {
 
 def load_and_prepare_data():
     """Carrega e prepara o dataset com Epoca e Jornada."""
-    df = pd.read_csv(DATASET_PATH, low_memory=False)
+    df = pd.read_csv(DATASET_PATH, encoding='utf-8', encoding_errors='replace', low_memory=False)
 
     if "Data" in df.columns:
         df["Data"] = pd.to_datetime(df["Data"], dayfirst=True, errors="coerce")
@@ -177,29 +177,47 @@ def get_info():
     df = load_and_prepare_data()
     df = df.dropna(subset=FEATURES).copy()
 
-    # Época de teste: 2023-2024
-    df_test = df[df["Epoca"] == "2023-2024"]
-    equipas = sorted(df_test["Equipa_Casa"].unique().tolist())
-    jornada_min = int(df_test["Jornada"].min())
-    jornada_max = int(df_test["Jornada"].max())
+    # Obter todas as épocas disponíveis ordenadas cronologicamente
+    epocas = sorted(df["Epoca"].dropna().unique().tolist())
+
+    # Montar informação detalhada para cada época disponível
+    detalhes_epocas = {}
+    for ep in epocas:
+        df_ep = df[df["Epoca"] == ep]
+        equipas_ep = sorted(df_ep["Equipa_Casa"].unique().tolist())
+        if not equipas_ep:
+            continue
+        
+        jornada_min = int(df_ep["Jornada"].min())
+        jornada_max = int(df_ep["Jornada"].max())
+        
+        detalhes_epocas[ep] = {
+            "equipas": equipas_ep,
+            "jornada_min": jornada_min,
+            "jornada_max": jornada_max,
+            "total_jogos": len(df_ep)
+        }
+
+    # Definir como época default a mais recente que tenha jogos
+    epoca_default = epocas[-1] if epocas else "2023-2024"
 
     return {
-        "epoca_teste": "2023-2024",
-        "equipas": equipas,
-        "jornada_min": jornada_min,
-        "jornada_max": jornada_max,
+        "epocas": epocas,
+        "detalhes_epocas": detalhes_epocas,
+        "epoca_default": epoca_default,
         "total_jogos_dataset": len(df),
         "features_utilizadas": len(FEATURES)
     }
 
 
-def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000):
+def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: str = "2023-2024"):
     """
     Executa a simulação Monte Carlo e retorna os resultados como dicionário.
 
     Args:
         jornada_alvo: Jornada a partir da qual começa a simulação
         num_simulacoes: Número de iterações Monte Carlo
+        epoca_alvo: A época a simular (ex: '2024-2025')
 
     Returns:
         Dicionário com resultados estruturados
@@ -209,13 +227,17 @@ def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000):
     df = load_and_prepare_data()
     df = df.dropna(subset=FEATURES).copy()
 
+    # Garantir que a época alvo existe no dataset
+    if epoca_alvo not in df["Epoca"].values:
+        return {"error": f"Época {epoca_alvo} não encontrada no dataset."}
+
     # Preparar Target
     le = LabelEncoder()
     df["Target"] = le.fit_transform(df["Resultado_Final"])
 
-    # 1. Separar dados de treino (antes de 23/24) e teste (época 23/24)
-    df_train = df[df["Epoca"] != "2023-2024"].copy()
-    df_test = df[df["Epoca"] == "2023-2024"].copy()
+    # 1. Separar dados de treino (excluindo a época alvo) e teste (época alvo)
+    df_train = df[df["Epoca"] != epoca_alvo].copy()
+    df_test = df[df["Epoca"] == epoca_alvo].copy()
 
     # 2. Congelamento do Estado Real
     jogos_passados = df_test[df_test["Jornada"] < jornada_alvo]
@@ -230,9 +252,16 @@ def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000):
     # Aplicar Feature Decay — reduzir peso das rolling features nas primeiras jornadas
     df_train = apply_feature_decay(df_train)
 
-    # Treinar modelo
+    # Treinar modelo (otimizado por Log Loss para Monte Carlo)
     rf_model = RandomForestClassifier(
-        n_estimators=100, max_depth=10, class_weight="balanced", random_state=42, n_jobs=-1
+        n_estimators=100,
+        max_depth=4,
+        min_samples_leaf=8,
+        min_samples_split=10,
+        max_features=0.2,
+        class_weight="balanced",
+        random_state=42,
+        n_jobs=-1
     )
     rf_model.fit(df_train[FEATURES], df_train["Target"])
 

@@ -311,3 +311,17 @@ andom_state=42\ estava a causar data leakage severo nas minhas estimativas, pois
   * Correção: Introdução de uma mecânica de **"Feature Decay"**. Agora, o backend ajusta o peso das variáveis (`rolling features`) de forma progressiva. No arranque do campeonato, o modelo confia predominantemente nos dados agregados da época transata (N-1). À medida que a época avança, o peso transita organicamente para os dados recentes de performance em tempo real.
   * O frontend foi atualizado para comunicar claramente o estado deste "decay", garantindo transparência ao utilizador quanto à origem da predição em diferentes momentos da época.
 
+## 2026-05-20
+
+- **[MONTE CARLO MULTIÉPOCA & RESILIÊNCIA DE ENCODING]**
+  * Adaptei o motor de simulação Monte Carlo (`app/monte_carlo.py`) e endpoints da API (`app/api.py`) para suportar a seleção e simulação de qualquer época dinâmica presente no dataset (desde `2017-2018` até `2025-2026`).
+  * Adicionei um dropdown de seleção de época responsivo no painel de controlo da interface web (`app/static/index.html` e `app/static/app.js`), que atualiza automaticamente as jornadas e equipas em tempo real.
+  * Resolvi um conflito de codificação de caracteres especiais (ex: `ç` em `DiferençaDeGolos` e `ó` em `Vitórias`) aplicando `encoding='utf-8'` com `encoding_errors='replace'` na leitura do app.
+  * Executei com sucesso o pipeline de ETL completo (`pipeline/run_all.py`), sincronizando ambos os datasets final e de features avançadas com exatamente 4.632 linhas de dados históricos e recentes.
+
+- **[ANÁLISE E OTIMIZAÇÃO DO RANDOM FOREST]**
+  * Realizei uma análise exaustiva e otimização hiperparamétrica sistemática do `RandomForestClassifier` com foco em calibração para Monte Carlo.
+  * Executei uma pesquisa (`RandomizedSearchCV` com `TimeSeriesSplit`) comparando diferentes métricas de otimização (Accuracy vs F1-Macro vs Log Loss).
+  * Descobri e documentei no ficheiro `analysis_results.md` a "Armadilha da Accuracy Pura", que aumentava a accuracy mas destruía o recall de empates (Recall 0%) ao ignorar a classe minoritária.
+  * Escolhi e apliquei a configuração otimizada por **Log Loss** (`max_depth=4`, `min_samples_leaf=8`, `min_samples_split=10`, `max_features=0.2` e `class_weight='balanced'`), que evita overfitting e suaviza previsões probabilísticas.
+  * Atualizei o modelo nos ficheiros principais (`app/monte_carlo.py`, `Notebooks/Simulacao_MonteCarlo.py` e `Notebooks/Modelacao_RandomForest.py`) e corrigi erros latentes de codificação de caracteres que impediam a execução direta em Windows.

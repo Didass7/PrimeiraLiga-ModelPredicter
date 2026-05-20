@@ -35,4 +35,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: "Auto-update: integração de dados de fim de época (24/25 e 25/26)"
-          file_pattern: "Datasets/*.csv"
+          file_pattern: "Datasets/**"

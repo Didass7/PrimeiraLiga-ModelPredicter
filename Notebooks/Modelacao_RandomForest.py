@@ -28,7 +28,7 @@ from sklearn.preprocessing import LabelEncoder
 
 # 1. Carregar Dados
 try:
-    df = pd.read_csv(r"d:\Diogo\Ambiente de Trabalho\PROJETO\Datasets\dataset_features_avancadas.csv", low_memory=False)
+    df = pd.read_csv(r"d:\Diogo\Ambiente de Trabalho\PROJETO\Datasets\dataset_features_avancadas.csv", low_memory=False, encoding='utf-8', encoding_errors='replace')
     print("Dataset carregado com sucesso.")
 except FileNotFoundError:
     print("Erro: Ficheiro não encontrado.")
@@ -90,13 +90,16 @@ print(f"Treino: {X_train.shape}, Teste: {X_test.shape}")
 # In[5]:
 
 
-# 4. Treinar Random Forest (Com Class Weight)
+# 4. Treinar Random Forest (Otimizado por Log Loss para Monte Carlo)
 rf_model = RandomForestClassifier(
     n_estimators=100,
-    max_depth=10,        # Limitar profundidade para evitar overfitting
-    class_weight='balanced', # Importante para os empates
+    max_depth=4,              # Otimizado para evitar overfitting e calibrar probabilidades
+    min_samples_leaf=8,        # Suaviza as previsões folha a folha
+    min_samples_split=10,      # Limita divisões desnecessárias
+    max_features=0.2,          # Explora 20% das features por split
+    class_weight='balanced',   # Mantém excelente sensibilidade a empates
     random_state=42,
-    n_jobs=-1            # Usar todos os cores
+    n_jobs=-1
 )
 
 print("A treinar Random Forest...")

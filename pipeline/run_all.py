@@ -48,6 +48,18 @@ def run_pipeline():
         else:
             print(f"[Pipeline] Erro na gravação da Época {formatted_season}.")
             
+    # Passo 4: Atualizar as features avançadas em ambos os ficheiros
+    print("\n--- [Pipeline] Iniciando Atualização de Features Avançadas ---")
+    try:
+        from pipeline.features_avancadas import update_advanced_datasets
+        advanced_success = update_advanced_datasets()
+        if advanced_success:
+            print("[Pipeline] Features avançadas atualizadas com sucesso!")
+        else:
+            print("[Pipeline] Falha ao atualizar as features avançadas.")
+    except Exception as e:
+        print(f"[Pipeline] Erro ao importar/executar features avançadas: {e}")
+            
     print("\n" + "=" * 60)
     print("PIPELINE DE DADOS CONCLUÍDO COM SUCESSO!")
     print("=" * 60)

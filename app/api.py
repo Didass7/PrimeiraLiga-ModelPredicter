@@ -31,6 +31,7 @@ app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 class SimulationRequest(BaseModel):
     jornada: int = Field(default=17, ge=1, le=34, description="Jornada a partir da qual simular")
     num_simulacoes: int = Field(default=1000, ge=100, le=10000, description="Número de iterações Monte Carlo")
+    epoca: str = Field(default="2023-2024", description="Época a simular")
 
 
 # --- Routes ---
@@ -56,7 +57,8 @@ async def api_simulate(request: SimulationRequest):
     try:
         result = run_simulation(
             jornada_alvo=request.jornada,
-            num_simulacoes=request.num_simulacoes
+            num_simulacoes=request.num_simulacoes,
+            epoca_alvo=request.epoca
         )
 
         if "error" in result:

@@ -22,6 +22,8 @@ const jornadaSlider = document.getElementById("jornada-slider");
 const jornadaValue = document.getElementById("jornada-value");
 const simulacoesSlider = document.getElementById("simulacoes-slider");
 const simulacoesValue = document.getElementById("simulacoes-value");
+const epocaSelect = document.getElementById("epoca-select");
+const epocaValue = document.getElementById("epoca-value");
 const btnSimulate = document.getElementById("btn-simulate");
 const btnText = document.getElementById("btn-text");
 const loadingOverlay = document.getElementById("loading-overlay");
@@ -43,17 +45,35 @@ async function fetchAppInfo() {
         if (!res.ok) throw new Error("Falha ao obter informações");
         appInfo = await res.json();
 
-        // Update slider ranges based on actual data
-        if (appInfo.jornada_min && appInfo.jornada_max) {
+        // Populate season dropdown
+        if (epocaSelect && appInfo.epocas) {
+            epocaSelect.innerHTML = "";
+            appInfo.epocas.forEach(ep => {
+                const opt = document.createElement("option");
+                opt.value = ep;
+                opt.textContent = ep;
+                if (ep === appInfo.epoca_default) opt.selected = true;
+                epocaSelect.appendChild(opt);
+            });
+            
+            if (epocaValue) epocaValue.textContent = appInfo.epoca_default;
+            
+            // Update info badge in header
+            const infoEl = document.getElementById("info-epoca");
+            if (infoEl) infoEl.textContent = appInfo.epoca_default;
+            
+            // Initialize sliders for default season
+            updateSlidersForSeason(appInfo.epoca_default);
+        } else if (appInfo.jornada_min && appInfo.jornada_max) {
+            // Fallback to static behaviour if epocas not present
             jornadaSlider.min = appInfo.jornada_min;
             jornadaSlider.max = appInfo.jornada_max;
             document.getElementById("jornada-min-label").textContent = appInfo.jornada_min;
             document.getElementById("jornada-max-label").textContent = appInfo.jornada_max;
+            
+            const infoEl = document.getElementById("info-epoca");
+            if (infoEl) infoEl.textContent = appInfo.epoca_teste;
         }
-
-        // Update info badges
-        const infoEl = document.getElementById("info-epoca");
-        if (infoEl) infoEl.textContent = appInfo.epoca_teste;
 
         const featEl = document.getElementById("info-features");
         if (featEl) featEl.textContent = appInfo.features_utilizadas;
@@ -65,7 +85,7 @@ async function fetchAppInfo() {
 
 
 // ============================================
-// Slider Controls
+// Slider & Dropdown Controls
 // ============================================
 function setupSliders() {
     jornadaSlider.addEventListener("input", () => {
@@ -76,6 +96,33 @@ function setupSliders() {
         const val = parseInt(simulacoesSlider.value);
         simulacoesValue.textContent = formatNumber(val);
     });
+
+    if (epocaSelect) {
+        epocaSelect.addEventListener("change", () => {
+            const selectedSeason = epocaSelect.value;
+            if (epocaValue) epocaValue.textContent = selectedSeason;
+            
+            const infoEl = document.getElementById("info-epoca");
+            if (infoEl) infoEl.textContent = selectedSeason;
+            
+            updateSlidersForSeason(selectedSeason);
+        });
+    }
+}
+
+function updateSlidersForSeason(season) {
+    if (!appInfo || !appInfo.detalhes_epocas || !appInfo.detalhes_epocas[season]) return;
+    
+    const details = appInfo.detalhes_epocas[season];
+    jornadaSlider.min = details.jornada_min;
+    jornadaSlider.max = details.jornada_max;
+    document.getElementById("jornada-min-label").textContent = details.jornada_min;
+    document.getElementById("jornada-max-label").textContent = details.jornada_max;
+    
+    // Default to the middle matchday or slightly less than max
+    const midJornada = Math.min(17, details.jornada_max);
+    jornadaSlider.value = midJornada;
+    jornadaValue.textContent = midJornada;
 }
 
 function formatNumber(n) {
@@ -114,6 +161,7 @@ async function runSimulation() {
 
     const jornada = parseInt(jornadaSlider.value);
     const numSim = parseInt(simulacoesSlider.value);
+    const epoca = epocaSelect ? epocaSelect.value : "2023-2024";
 
     try {
         const res = await fetch("/api/simulate", {
@@ -121,7 +169,8 @@ async function runSimulation() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 jornada: jornada,
-                num_simulacoes: numSim
+                num_simulacoes: numSim,
+                epoca: epoca
             })
         });
 
