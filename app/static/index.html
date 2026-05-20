@@ -36,18 +36,26 @@
         <div class="container">
             <!-- ===== CONTROLS ===== -->
             <section class="controls" id="controls-panel">
-                <div class="controls__title">
-                    <span class="icon">⚙️</span>
-                    Painel de Controlo
+                <div class="controls__header">
+                    <div class="controls__title">
+                        <span class="controls__title-icon">⚙️</span>
+                        <div>
+                            <span class="controls__title-text">Painel de Controlo</span>
+                            <span class="controls__title-sub">Configure os parâmetros da simulação</span>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="controls__grid">
                     <!-- Jornada Slider -->
-                    <div class="control-group">
-                        <label for="jornada-slider">Iniciar simulação na Jornada</label>
-                        <div class="control-group__value">
-                            <span id="jornada-value">17</span>
-                            <span class="unit">/ 34</span>
+                    <div class="control-card">
+                        <div class="control-card__header">
+                            <span class="control-card__icon">📅</span>
+                            <label for="jornada-slider" class="control-card__label">Jornada Inicial</label>
+                        </div>
+                        <div class="control-card__value">
+                            <span class="control-card__number" id="jornada-value">17</span>
+                            <span class="control-card__unit">/ 34</span>
                         </div>
                         <input type="range" id="jornada-slider" min="2" max="34" value="17" step="1">
                         <div class="range-labels">
@@ -57,11 +65,14 @@
                     </div>
 
                     <!-- Simulações Slider -->
-                    <div class="control-group">
-                        <label for="simulacoes-slider">Número de simulações</label>
-                        <div class="control-group__value">
-                            <span id="simulacoes-value">1 000</span>
-                            <span class="unit">iterações</span>
+                    <div class="control-card">
+                        <div class="control-card__header">
+                            <span class="control-card__icon">🔄</span>
+                            <label for="simulacoes-slider" class="control-card__label">Simulações Monte Carlo</label>
+                        </div>
+                        <div class="control-card__value">
+                            <span class="control-card__number" id="simulacoes-value">1 000</span>
+                            <span class="control-card__unit">iterações</span>
                         </div>
                         <input type="range" id="simulacoes-slider" min="100" max="5000" value="1000" step="100">
                         <div class="range-labels">
@@ -71,14 +82,34 @@
                     </div>
 
                     <!-- Época Selector -->
-                    <div class="control-group">
-                        <label for="epoca-select">Época a simular</label>
-                        <div class="control-group__value">
-                            <span id="epoca-value">-</span>
-                            <span class="unit">selecionada</span>
+                    <div class="control-card">
+                        <div class="control-card__header">
+                            <span class="control-card__icon">🏟️</span>
+                            <label for="epoca-select" class="control-card__label">Época a Simular</label>
                         </div>
-                        <select id="epoca-select" class="select-epoca">
+                        <div class="control-card__value">
+                            <span class="control-card__number" id="epoca-value">-</span>
+                            <span class="control-card__unit">selecionada</span>
+                        </div>
+                        <select id="epoca-select" class="select-control">
                             <!-- Dynamic options -->
+                        </select>
+                    </div>
+
+                    <!-- Modelo Selector -->
+                    <div class="control-card">
+                        <div class="control-card__header">
+                            <span class="control-card__icon">🧠</span>
+                            <label for="modelo-select" class="control-card__label">Modelo de ML</label>
+                        </div>
+                        <div class="control-card__value">
+                            <span class="control-card__number control-card__number--sm" id="modelo-value">Random Forest</span>
+                        </div>
+                        <select id="modelo-select" class="select-control">
+                            <option value="Random Forest" selected>🌲 Random Forest</option>
+                            <option value="XGBoost">⚡ XGBoost</option>
+                            <option value="Decision Tree">🌳 Decision Tree</option>
+                            <option value="Logistic Regression">📈 Regressão Logística</option>
                         </select>
                     </div>
                 </div>
@@ -86,7 +117,7 @@
                 <!-- Simulate Button -->
                 <button class="btn-simulate" id="btn-simulate" onclick="runSimulation()">
                     <span class="spinner"></span>
-                    <span class="btn-text" id="btn-text">Simular Campeonato</span>
+                    <span class="btn-text" id="btn-text">🚀 Simular Campeonato</span>
                 </button>
             </section>
 
@@ -113,96 +144,185 @@
                     </div>
                 </div>
 
-                <!-- Feature Decay Banner -->
-                <div class="decay-banner" id="decay-banner">
-                    <div class="decay-banner__icon">🔬</div>
-                    <div class="decay-banner__content">
-                        <div class="decay-banner__title" id="decay-title">Feature Decay Ativo</div>
-                        <div class="decay-banner__desc" id="decay-desc">—</div>
-                    </div>
-                    <div class="decay-banner__meter">
-                        <div class="decay-banner__meter-label">Confiança Rolling</div>
-                        <div class="decay-banner__meter-track">
-                            <div class="decay-banner__meter-fill" id="decay-meter-fill" style="width: 0%"></div>
+                <!-- ===== RESULTS TABS NAVIGATION ===== -->
+                <div class="results-tabs">
+                    <button class="tab-btn tab-btn--active" id="btn-tab-campeonato" onclick="switchTab('campeonato')">
+                        <span class="icon">🏆</span> Campeonato
+                    </button>
+                    <button class="tab-btn" id="btn-tab-jogos" onclick="switchTab('jogos')">
+                        <span class="icon">📅</span> Próximos Jogos
+                    </button>
+                    <button class="tab-btn" id="btn-tab-analise" onclick="switchTab('analise')">
+                        <span class="icon">🧠</span> Análise & Métricas
+                    </button>
+                </div>
+
+                <!-- ===== TAB 1: CAMPEONATO ===== -->
+                <div class="tab-pane active" id="tab-campeonato">
+                    <!-- Big 3 Cards -->
+                    <div class="big3">
+                        <div class="big3__card big3__card--sporting stagger-in" id="card-sporting"
+                            style="animation-delay: 0ms;">
+                            <div class="big3__rank">-</div>
+                            <div class="big3__name">Sporting CP</div>
+                            <div class="big3__prob">--%</div>
+                            <div class="big3__label">probabilidade de título</div>
+                            <div class="big3__pts">-- pts acumulados</div>
                         </div>
-                        <div class="decay-banner__meter-value" id="decay-meter-value">—</div>
+                        <div class="big3__card big3__card--benfica stagger-in" id="card-benfica"
+                            style="animation-delay: 100ms;">
+                            <div class="big3__rank">-</div>
+                            <div class="big3__name">Benfica</div>
+                            <div class="big3__prob">--%</div>
+                            <div class="big3__label">probabilidade de título</div>
+                            <div class="big3__pts">-- pts acumulados</div>
+                        </div>
+                        <div class="big3__card big3__card--porto stagger-in" id="card-porto"
+                            style="animation-delay: 200ms;">
+                            <div class="big3__rank">-</div>
+                            <div class="big3__name">Porto</div>
+                            <div class="big3__prob">--%</div>
+                            <div class="big3__label">probabilidade de título</div>
+                            <div class="big3__pts">-- pts acumulados</div>
+                        </div>
+                    </div>
+
+                    <!-- Side-by-Side Tables Grid -->
+                    <div class="championship-grid">
+                        <!-- Left Column: Title Probabilities -->
+                        <div class="championship-column">
+                            <h3 class="section-title">
+                                <span class="icon">🏆</span>
+                                Probabilidade de Título
+                            </h3>
+                            <div class="prob-table">
+                                <div class="prob-table__row prob-table__row--header">
+                                    <div>#</div>
+                                    <div>Equipa</div>
+                                    <div>Probabilidade</div>
+                                    <div style="text-align:right">%</div>
+                                </div>
+                                <div id="prob-table-body"></div>
+                            </div>
+                        </div>
+
+                        <!-- Right Column: Real Standings -->
+                        <div class="championship-column">
+                            <h3 class="section-title">
+                                <span class="icon">📋</span>
+                                Classificação Real <span id="standings-title-jornada"
+                                    style="color: var(--text-muted); font-weight:400; font-size: 0.85rem; margin-left: 0.5rem;"></span>
+                            </h3>
+                            <div class="standings">
+                                <div class="standings__row standings__row--header">
+                                    <div>#</div>
+                                    <div>Equipa</div>
+                                    <div style="text-align:right">Pts</div>
+                                </div>
+                                <div id="standings-body"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Big 3 Cards -->
-                <div class="big3">
-                    <div class="big3__card big3__card--sporting stagger-in" id="card-sporting"
-                        style="animation-delay: 0ms;">
-                        <div class="big3__rank">-</div>
-                        <div class="big3__name">Sporting CP</div>
-                        <div class="big3__prob">--%</div>
-                        <div class="big3__label">probabilidade de título</div>
-                        <div class="big3__pts">-- pts acumulados</div>
-                    </div>
-                    <div class="big3__card big3__card--benfica stagger-in" id="card-benfica"
-                        style="animation-delay: 100ms;">
-                        <div class="big3__rank">-</div>
-                        <div class="big3__name">Benfica</div>
-                        <div class="big3__prob">--%</div>
-                        <div class="big3__label">probabilidade de título</div>
-                        <div class="big3__pts">-- pts acumulados</div>
-                    </div>
-                    <div class="big3__card big3__card--porto stagger-in" id="card-porto"
-                        style="animation-delay: 200ms;">
-                        <div class="big3__rank">-</div>
-                        <div class="big3__name">Porto</div>
-                        <div class="big3__prob">--%</div>
-                        <div class="big3__label">probabilidade de título</div>
-                        <div class="big3__pts">-- pts acumulados</div>
-                    </div>
+                <!-- ===== TAB 2: NEXT MATCHES ===== -->
+                <div class="tab-pane" id="tab-jogos">
+                    <h3 class="section-title">
+                        <span class="icon">📅</span>
+                        Próximos Jogos a Simular
+                    </h3>
+                    <p class="section-subtitle">Os jogos que restam disputar no campeonato e que foram simulados pelo modelo Monte Carlo.</p>
+                    <div class="matches" id="matches-container"></div>
                 </div>
 
-                <!-- Probability Table -->
-                <h3 class="section-title">
-                    <span class="icon">🏆</span>
-                    Probabilidade de Título — Todas as Equipas
-                </h3>
-                <div class="prob-table">
-                    <div class="prob-table__row prob-table__row--header">
-                        <div>#</div>
-                        <div>Equipa</div>
-                        <div>Probabilidade</div>
-                        <div style="text-align:right">%</div>
+                <!-- ===== TAB 3: IA & PERFORMANCE ===== -->
+                <div class="tab-pane" id="tab-analise">
+                    <!-- Feature Decay Banner -->
+                    <div class="decay-banner" id="decay-banner">
+                        <div class="decay-banner__icon">🔬</div>
+                        <div class="decay-banner__content">
+                            <div class="decay-banner__title" id="decay-title">Feature Decay Ativo</div>
+                            <div class="decay-banner__desc" id="decay-desc">—</div>
+                        </div>
+                        <div class="decay-banner__meter">
+                            <div class="decay-banner__meter-label">Confiança Rolling</div>
+                            <div class="decay-banner__meter-track">
+                                <div class="decay-banner__meter-fill" id="decay-meter-fill" style="width: 0%"></div>
+                            </div>
+                            <div class="decay-banner__meter-value" id="decay-meter-value">—</div>
+                        </div>
                     </div>
-                    <div id="prob-table-body"></div>
+
+                    <!-- Model Performance Metrics Section -->
+                    <div class="metrics-section" id="metrics-section" style="display: none;">
+                        <h3 class="section-title">
+                            <span class="icon">🎯</span>
+                            Desempenho de Validação do Modelo (Nesta Época)
+                        </h3>
+                        <p class="section-subtitle" id="metrics-subtitle">Avaliação do modelo Random Forest nos jogos que já foram disputados até à jornada atual.</p>
+                        
+                        <div class="metrics-grid">
+                            <!-- Accuracy Card -->
+                            <div class="metric-card metric-card--accuracy stagger-in">
+                                <div class="metric-card__header">
+                                    <span class="metric-card__title">Accuracy Geral</span>
+                                    <span class="metric-card__value" id="metrics-accuracy">--%</span>
+                                </div>
+                                <div class="metric-card__bar-container">
+                                    <div class="metric-card__bar" id="metrics-accuracy-bar" style="width: 0%"></div>
+                                </div>
+                                <div class="metric-card__footer">
+                                    <span>Proporção de acertos do modelo nos desfechos gerais (V/E/D)</span>
+                                    <span id="metrics-count" class="badge-count">-- jogos avaliados</span>
+                                </div>
+                            </div>
+
+                            <!-- Recalls Grid -->
+                            <div class="metric-card metric-card--recalls stagger-in">
+                                <div class="metric-card__title" style="margin-bottom: 1rem; font-weight: 600; font-size: 0.95rem; color: var(--text);">Recall por Classe (Sensibilidade)</div>
+                                <div class="recalls-grid">
+                                    <div class="recall-item">
+                                        <div class="recall-item__label">Vitórias em Casa (H)</div>
+                                        <div class="recall-item__gauge-wrapper">
+                                            <div class="recall-item__gauge-track">
+                                                <div class="recall-item__gauge-fill recall-item__gauge-fill--home" id="recall-home" style="width: 0%"></div>
+                                            </div>
+                                            <span class="recall-item__value" id="recall-home-val">--%</span>
+                                        </div>
+                                    </div>
+                                    <div class="recall-item">
+                                        <div class="recall-item__label">Empates (D)</div>
+                                        <div class="recall-item__gauge-wrapper">
+                                            <div class="recall-item__gauge-track">
+                                                <div class="recall-item__gauge-fill recall-item__gauge-fill--draw" id="recall-draw" style="width: 0%"></div>
+                                            </div>
+                                            <span class="recall-item__value" id="recall-draw-val">--%</span>
+                                        </div>
+                                    </div>
+                                    <div class="recall-item">
+                                        <div class="recall-item__label">Vitórias Fora (A)</div>
+                                        <div class="recall-item__gauge-wrapper">
+                                            <div class="recall-item__gauge-track">
+                                                <div class="recall-item__gauge-fill recall-item__gauge-fill--away" id="recall-away" style="width: 0%"></div>
+                                            </div>
+                                            <span class="recall-item__value" id="recall-away-val">--%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Feature Importance -->
+                    <h3 class="section-title">
+                        <span class="icon">🧠</span>
+                        Variáveis Mais Importantes do Modelo
+                        <span class="decay-badge" id="decay-badge"></span>
+                    </h3>
+                    <p class="section-subtitle" id="feature-subtitle">As 15 features que mais influenciaram as previsões do Random Forest nesta simulação.</p>
+                    <div class="feature-importance" id="feature-importance-container"></div>
                 </div>
 
-                <!-- Feature Importance -->
-                <h3 class="section-title">
-                    <span class="icon">🧠</span>
-                    Variáveis Mais Importantes do Modelo
-                    <span class="decay-badge" id="decay-badge"></span>
-                </h3>
-                <p class="section-subtitle" id="feature-subtitle">As 15 features que mais influenciaram as previsões do
-                    Random Forest nesta simulação.</p>
-                <div class="feature-importance" id="feature-importance-container"></div>
-
-                <!-- Real Standings -->
-                <h3 class="section-title">
-                    <span class="icon">📋</span>
-                    Classificação Real <span id="standings-title-jornada"
-                        style="color: var(--text-muted); font-weight:400; font-size: 0.85rem; margin-left: 0.5rem;"></span>
-                </h3>
-                <div class="standings">
-                    <div class="standings__row standings__row--header">
-                        <div>#</div>
-                        <div>Equipa</div>
-                        <div style="text-align:right">Pts</div>
-                    </div>
-                    <div id="standings-body"></div>
-                </div>
-
-                <!-- Next Matches -->
-                <h3 class="section-title">
-                    <span class="icon">📅</span>
-                    Próximos Jogos a Simular
-                </h3>
-                <div class="matches" id="matches-container"></div>
             </section>
         </div>
     </main>

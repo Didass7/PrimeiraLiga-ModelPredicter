@@ -325,3 +325,51 @@ andom_state=42\ estava a causar data leakage severo nas minhas estimativas, pois
   * Descobri e documentei no ficheiro `analysis_results.md` a "Armadilha da Accuracy Pura", que aumentava a accuracy mas destruía o recall de empates (Recall 0%) ao ignorar a classe minoritária.
   * Escolhi e apliquei a configuração otimizada por **Log Loss** (`max_depth=4`, `min_samples_leaf=8`, `min_samples_split=10`, `max_features=0.2` e `class_weight='balanced'`), que evita overfitting e suaviza previsões probabilísticas.
   * Atualizei o modelo nos ficheiros principais (`app/monte_carlo.py`, `Notebooks/Simulacao_MonteCarlo.py` e `Notebooks/Modelacao_RandomForest.py`) e corrigi erros latentes de codificação de caracteres que impediam a execução direta em Windows.
+
+- **[SISTEMA DE MÉTRICAS E VALIDAÇÃO DE PREVISÕES (ACCURACY & RECALL)]**
+  * Desenvolvi no backend (`app/monte_carlo.py`) a lógica de avaliação das previsões para os jogos passados disputados na época selecionada. Sempre que a jornada alvo for superior a 1, o modelo calcula o *Accuracy* geral e o *Recall* (Sensibilidade) específico para cada desfecho desportivo (Vitória em Casa `H`, Empate `D`, Vitória Fora `A`).
+  * Construí no frontend um painel de controlo premium de métricas (`#metrics-section` em `index.html`, `app.js` e `styles.css`) com estilo glassmorphic escuro, barras de progresso dinâmicas e indicadores visuais que reagem com micro-animações interativas e transições suaves após a execução da simulação.
+
+- **[NORMALIZAÇÃO ROBUSTA DE ENCODINGS & MOJIBAKE]**
+  * Detetei que o dataset principal continha um formato híbrido de dados, misturando linhas em UTF-8 e Latin-1. Esta inconsistência provocava caracteres corrompidos com o símbolo de substituição `` (como "Vitria" ou "Famalico") ou causava *mojibake* dupla-codificação ("VitÃ³ria").
+  * Criei a função heurística `fix_mojibake` que reconverte dados distorcidos ao descodificar e recodificar condicionalmente os bytes de forma dinâmica e segura.
+  * Integrei este corretor na leitura de dados em `app/monte_carlo.py`, `Notebooks/Simulacao_MonteCarlo.py` e `Notebooks/Modelacao_RandomForest.py`, limpando tanto os cabeçalhos das tabelas (o que preveniu `KeyErrors` críticos em colunas como `Home_hist_Vitórias`) como todas as colunas de texto (unificando e exibindo perfeitamente acentos portugueses nas equipas Vitória, Famalicão e Paços de Ferreira).
+
+- **[DROPDOWN DE SELEÇÃO DE MODELO DE ML]**
+  * Implementei um dropdown no Painel de Controlo que permite escolher dinamicamente o classificador de Machine Learning para a simulação Monte Carlo, com base nos notebooks criados no projeto.
+  * **Modelos disponíveis:** Random Forest (padrão), XGBoost, Decision Tree e Regressão Logística.
+  * **Backend (`app/monte_carlo.py`):** Adicionadas importações de `DecisionTreeClassifier`, `LogisticRegression` e `XGBClassifier`. A função `run_simulation()` recebe agora o parâmetro `modelo_alvo` e treina condicionalmente o classificador selecionado com os hiperparâmetros extraídos dos notebooks do projeto.
+  * **Hiperparâmetros configurados:**
+    - *XGBoost:* `learning_rate=0.05`, `max_depth=4`, `n_estimators=100`, `eval_metric='mlogloss'`, com `compute_sample_weight(class_weight='balanced')`.
+    - *Decision Tree:* `max_depth=4`, `class_weight='balanced'`.
+    - *Regressão Logística:* `solver='lbfgs'`, `max_iter=1000`, `class_weight='balanced'`.
+  * **Feature Importance para Regressão Logística:** Modelos lineares não possuem `.feature_importances_`. Implementei um proxy baseado na média dos valores absolutos dos coeficientes: `importances = np.mean(np.abs(model.coef_), axis=0)`, que se integra perfeitamente nos gráficos de barras do frontend.
+  * **API (`app/api.py`):** Campo `modelo` adicionado ao schema Pydantic `SimulationRequest` e propagado à chamada do backend.
+  * **Frontend (`app.js`):** O modelo selecionado é enviado no payload JSON do POST, a mensagem de loading adapta-se dinamicamente ao nome do modelo, e as legendas das secções de métricas e feature importance atualizam-se automaticamente.
+  * **Dependência:** Registado `xgboost` no `requirements.txt`.
+
+- **[CORREÇÃO DE DATA LEAKAGE NAS MÉTRICAS DE VALIDAÇÃO]**
+  * Identifiquei um problema crítico de Data Leakage no cálculo das métricas de validação ("Desempenho de Validação do Modelo"). O modelo principal, treinado com os jogos passados da época alvo incluídos no conjunto de treino, era usado para prever esses mesmos jogos passados. Isto resultava em accuracy inflacionada artificialmente (71.9% com XGBoost na época 2025-2026, quando o valor real out-of-sample é ~54%).
+  * **Correção:** Criei um modelo de validação auxiliar (`model_val`) treinado exclusivamente nas épocas anteriores (excluindo toda a época alvo), que é usado apenas para calcular as métricas de Accuracy e Recall nos jogos passados. O modelo principal de simulação continua a usar toda a informação disponível para prever os jogos futuros.
+  * **Resultados corrigidos (out-of-sample, época 2025-2026, jornada 17):**
+    - Random Forest: 56.1% accuracy
+    - XGBoost: 54.0% accuracy
+    - Decision Tree: 54.0% accuracy
+    - Regressão Logística: 54.0% accuracy
+  * Estes valores situam-se na faixa realista de 54%-56%, consistente com a literatura e os resultados dos nossos notebooks.
+
+- **[CORREÇÃO DE ERRO DE SERIALIZAÇÃO JSON (numpy.float32)]**
+  * Identificado e corrigido um bug que causava HTTP 500 ao simular com XGBoost. O array `.feature_importances_` do scikit-learn/XGBoost armazena valores como `numpy.float32`, que não são serializáveis nativamente pelo `json.dumps()` do FastAPI.
+  * Correção: cast explícito `float()` no cálculo percentual de importância de cada feature em `app/monte_carlo.py`.
+  * Adicionalmente, melhorei o tratamento de erros no frontend (`app.js`) para lidar graciosamente com respostas HTTP 500 não-JSON, mostrando uma mensagem amigável em vez do erro críptico `JSON.parse: unexpected character`.
+
+- **[REDESIGN DO PAINEL DE CONTROLO]**
+  * Redesenhei por completo o Painel de Controlo da aplicação para uma estética mais premium e funcional.
+  * **Cards individuais:** Cada parâmetro (Jornada, Simulações, Época, Modelo) vive agora dentro da sua própria card com fundo subtil, bordo e efeito hover interativo verde.
+  * **Header com identidade:** O título do painel inclui agora um ícone emoldurado e um subtítulo descritivo, separados dos controlos por uma linha divisória.
+  * **Ícones contextuais:** Cada card tem o seu próprio ícone (📅 Jornada, 🔄 Simulações, 🏟️ Época, 🧠 Modelo).
+  * **Tipografia corrigida:** Os valores numéricos usam `1.7rem`, enquanto nomes de modelos longos (como "Random Forest") usam uma variante menor (`1.25rem`) para nunca quebrar em duas linhas.
+  * **Dropdowns premium:** Seta SVG customizada, focus ring com dupla camada, e emojis nos nomes dos modelos (🌲 🌳 ⚡ 📈).
+  * **Grid 2×2:** Substituída a grelha de 4 colunas estreitas por 2×2 em desktop, dando mais espaço horizontal a cada controlo.
+  * **Linha gradiente decorativa:** `::before` pseudo-elemento com gradiente verde-dourado de 2px no topo do painel.
+

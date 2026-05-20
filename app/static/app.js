@@ -24,6 +24,8 @@ const simulacoesSlider = document.getElementById("simulacoes-slider");
 const simulacoesValue = document.getElementById("simulacoes-value");
 const epocaSelect = document.getElementById("epoca-select");
 const epocaValue = document.getElementById("epoca-value");
+const modeloSelect = document.getElementById("modelo-select");
+const modeloValue = document.getElementById("modelo-value");
 const btnSimulate = document.getElementById("btn-simulate");
 const btnText = document.getElementById("btn-text");
 const loadingOverlay = document.getElementById("loading-overlay");
@@ -108,6 +110,13 @@ function setupSliders() {
             updateSlidersForSeason(selectedSeason);
         });
     }
+
+    if (modeloSelect) {
+        modeloSelect.addEventListener("change", () => {
+            const selectedModel = modeloSelect.value;
+            if (modeloValue) modeloValue.textContent = selectedModel;
+        });
+    }
 }
 
 function updateSlidersForSeason(season) {
@@ -146,8 +155,9 @@ async function runSimulation() {
     errorBox.classList.remove("active");
 
     // Loading messages
+    const selectedModelName = modeloSelect ? modeloSelect.value : "Random Forest";
     const messages = [
-        "A treinar o modelo Random Forest...",
+        `A treinar o modelo ${selectedModelName}...`,
         "A calcular probabilidades de cada jogo...",
         "A executar simulações Monte Carlo...",
         "A compilar classificações finais...",
@@ -170,13 +180,22 @@ async function runSimulation() {
             body: JSON.stringify({
                 jornada: jornada,
                 num_simulacoes: numSim,
-                epoca: epoca
+                epoca: epoca,
+                modelo: selectedModelName
             })
         });
 
         if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.detail || "Erro desconhecido na simulação");
+            let errorMsg = `Erro na simulação (HTTP ${res.status})`;
+            try {
+                const errData = await res.json();
+                if (errData && errData.detail) {
+                    errorMsg = errData.detail;
+                }
+            } catch (jsonErr) {
+                // O servidor retornou um HTML de erro ou texto simples em vez de JSON
+            }
+            throw new Error(errorMsg);
         }
 
         const data = await res.json();
@@ -199,6 +218,20 @@ async function runSimulation() {
 // Render Results
 // ============================================
 function renderResults(data) {
+    // Reset to championship tab
+    switchTab("campeonato");
+
+    // Update dynamic titles based on the simulated model
+    const selectedModelName = modeloSelect ? modeloSelect.value : "Random Forest";
+    const metricsSubtitle = document.getElementById("metrics-subtitle");
+    if (metricsSubtitle) {
+        metricsSubtitle.textContent = `Avaliação do modelo ${selectedModelName} nos jogos que já foram disputados até à jornada atual.`;
+    }
+    const featureSubtitle = document.getElementById("feature-subtitle");
+    if (featureSubtitle) {
+        featureSubtitle.textContent = `As 15 features que mais influenciaram as previsões do ${selectedModelName} nesta simulação.`;
+    }
+
     // Update meta tags
     document.getElementById("meta-tempo").textContent = data.tempo_execucao + "s";
     document.getElementById("meta-sims").textContent = formatNumber(data.num_simulacoes);
@@ -213,6 +246,9 @@ function renderResults(data) {
 
     // Full probability table
     renderProbTable(data.probabilidades_titulo);
+
+    // Model Performance Metrics
+    renderMetrics(data.metricas_previsao, data.jornada);
 
     // Feature Importance (pass decay info for rolling tags)
     renderFeatureImportance(data.feature_importance, data.feature_decay);
@@ -488,6 +524,135 @@ function renderMatches(matches) {
     });
 }
 
+function renderMetrics(metrics, targetJornada) {
+    const section = document.getElementById("metrics-section");
+    if (!section) return;
+
+    if (!metrics || !metrics.disponivel) {
+        section.style.display = "none";
+        return;
+    }
+
+    section.style.display = "block";
+
+    // Set Accuracy value
+    document.getElementById("metrics-accuracy").textContent = metrics.accuracy.toFixed(1) + "%";
+    
+    // Animate accuracy bar
+    const accuracyBar = document.getElementById("metrics-accuracy-bar");
+    if (accuracyBar) {
+        accuracyBar.style.width = "0%";
+        accuracyBar.dataset.width = metrics.accuracy;
+        setTimeout(() => {
+            accuracyBar.style.width = metrics.accuracy + "%";
+        }, 100);
+    }
+
+    // Set count text
+    document.getElementById("metrics-count").textContent = `${metrics.jogos_avaliados} jogos avaliados (Jornadas 1 a ${targetJornada - 1})`;
+
+    // Set and animate Recalls
+    const recallHome = document.getElementById("recall-home");
+    const recallHomeVal = document.getElementById("recall-home-val");
+    if (recallHome && recallHomeVal) {
+        recallHomeVal.textContent = metrics.recall.H.toFixed(1) + "%";
+        recallHome.style.width = "0%";
+        recallHome.dataset.width = metrics.recall.H;
+        setTimeout(() => {
+            recallHome.style.width = metrics.recall.H + "%";
+        }, 200);
+    }
+
+    const recallDraw = document.getElementById("recall-draw");
+    const recallDrawVal = document.getElementById("recall-draw-val");
+    if (recallDraw && recallDrawVal) {
+        recallDrawVal.textContent = metrics.recall.D.toFixed(1) + "%";
+        recallDraw.style.width = "0%";
+        recallDraw.dataset.width = metrics.recall.D;
+        setTimeout(() => {
+            recallDraw.style.width = metrics.recall.D + "%";
+        }, 300);
+    }
+
+    const recallAway = document.getElementById("recall-away");
+    const recallAwayVal = document.getElementById("recall-away-val");
+    if (recallAway && recallAwayVal) {
+        recallAwayVal.textContent = metrics.recall.A.toFixed(1) + "%";
+        recallAway.style.width = "0%";
+        recallAway.dataset.width = metrics.recall.A;
+        setTimeout(() => {
+            recallAway.style.width = metrics.recall.A + "%";
+        }, 400);
+    }
+}
+
+
+// ============================================
+// Tab Navigation
+// ============================================
+function switchTab(tabId) {
+    // Hide all tab panes
+    const panes = document.querySelectorAll(".tab-pane");
+    panes.forEach(pane => pane.classList.remove("active"));
+
+    // Deactivate all tab buttons
+    const buttons = document.querySelectorAll(".tab-btn");
+    buttons.forEach(btn => btn.classList.remove("tab-btn--active"));
+
+    // Show selected tab pane
+    const activePane = document.getElementById("tab-" + tabId);
+    if (activePane) {
+        activePane.classList.add("active");
+    }
+
+    // Activate selected tab button
+    const activeBtn = document.getElementById("btn-tab-" + tabId);
+    if (activeBtn) {
+        activeBtn.classList.add("tab-btn--active");
+    }
+
+    // Trigger animation of bars for specific tabs when switched
+    if (tabId === "campeonato") {
+        setTimeout(() => {
+            document.querySelectorAll(".prob-table__bar").forEach(bar => {
+                if (bar.dataset.width) {
+                    bar.style.width = bar.dataset.width + "%";
+                }
+            });
+        }, 100);
+    } else if (tabId === "analise") {
+        // Trigger feature importance and metrics animations
+        setTimeout(() => {
+            document.querySelectorAll(".feat-row__bar-fill").forEach(bar => {
+                if (bar.dataset.width) {
+                    bar.style.width = bar.dataset.width + "%";
+                }
+            });
+            
+            // Re-trigger metrics animations
+            const accuracyBar = document.getElementById("metrics-accuracy-bar");
+            if (accuracyBar && accuracyBar.dataset.width) {
+                accuracyBar.style.width = accuracyBar.dataset.width + "%";
+            }
+            
+            const rHome = document.getElementById("recall-home");
+            if (rHome && rHome.dataset.width) {
+                rHome.style.width = rHome.dataset.width + "%";
+            }
+            
+            const rDraw = document.getElementById("recall-draw");
+            if (rDraw && rDraw.dataset.width) {
+                rDraw.style.width = rDraw.dataset.width + "%";
+            }
+            
+            const rAway = document.getElementById("recall-away");
+            if (rAway && rAway.dataset.width) {
+                rAway.style.width = rAway.dataset.width + "%";
+            }
+        }, 100);
+    }
+}
+
 
 // ============================================
 // Error Handling
@@ -496,3 +661,4 @@ function showError(message) {
     errorBox.textContent = "⚠ " + message;
     errorBox.classList.add("active");
 }
+

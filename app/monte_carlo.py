@@ -8,6 +8,10 @@ Toda a lógica de impressão foi substituída por retorno de dicionários estrut
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
+from sklearn.utils.class_weight import compute_sample_weight
 from sklearn.preprocessing import LabelEncoder
 import time
 import os
@@ -114,9 +118,26 @@ FEATURE_LABELS = {
 }
 
 
+def fix_mojibake(text):
+    """Corrige strings com encodings mistos (UTF-8 decodificado incorretamente como Latin-1)."""
+    if not isinstance(text, str):
+        return text
+    try:
+        return text.encode('latin-1').decode('utf-8')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+
+
 def load_and_prepare_data():
     """Carrega e prepara o dataset com Epoca e Jornada."""
-    df = pd.read_csv(DATASET_PATH, encoding='utf-8', encoding_errors='replace', low_memory=False)
+    df = pd.read_csv(DATASET_PATH, encoding='latin1', low_memory=False)
+
+    # Corrigir mojibake/encoding misto nos nomes das colunas
+    df.columns = [fix_mojibake(col) for col in df.columns]
+
+    # Corrigir mojibake/encoding misto em todas as colunas de texto
+    for col in df.select_dtypes(include=['object']).columns:
+        df[col] = df[col].apply(fix_mojibake)
 
     if "Data" in df.columns:
         df["Data"] = pd.to_datetime(df["Data"], dayfirst=True, errors="coerce")
@@ -210,7 +231,7 @@ def get_info():
     }
 
 
-def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: str = "2023-2024"):
+def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: str = "2023-2024", modelo_alvo: str = "Random Forest"):
     """
     Executa a simulação Monte Carlo e retorna os resultados como dicionário.
 
@@ -252,18 +273,51 @@ def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: st
     # Aplicar Feature Decay — reduzir peso das rolling features nas primeiras jornadas
     df_train = apply_feature_decay(df_train)
 
-    # Treinar modelo (otimizado por Log Loss para Monte Carlo)
-    rf_model = RandomForestClassifier(
-        n_estimators=100,
-        max_depth=4,
-        min_samples_leaf=8,
-        min_samples_split=10,
-        max_features=0.2,
-        class_weight="balanced",
-        random_state=42,
-        n_jobs=-1
-    )
-    rf_model.fit(df_train[FEATURES], df_train["Target"])
+    # 2. Treinar o modelo de Machine Learning selecionado
+    if modelo_alvo == "XGBoost":
+        model = XGBClassifier(
+            objective='multi:softprob',
+            num_class=3,
+            n_estimators=100,
+            learning_rate=0.05,
+            max_depth=4,
+            random_state=42,
+            eval_metric='mlogloss',
+            n_jobs=-1
+        )
+        sample_weights = compute_sample_weight(
+            class_weight='balanced',
+            y=df_train["Target"]
+        )
+        model.fit(df_train[FEATURES], df_train["Target"], sample_weight=sample_weights)
+    elif modelo_alvo == "Decision Tree":
+        model = DecisionTreeClassifier(
+            max_depth=4,
+            class_weight='balanced',
+            random_state=42
+        )
+        model.fit(df_train[FEATURES], df_train["Target"])
+    elif modelo_alvo == "Logistic Regression":
+        model = LogisticRegression(
+            solver='lbfgs',
+            max_iter=1000,
+            random_state=42,
+            class_weight='balanced'
+        )
+        model.fit(df_train[FEATURES], df_train["Target"])
+    else:
+        # Default: Random Forest
+        model = RandomForestClassifier(
+            n_estimators=100,
+            max_depth=4,
+            min_samples_leaf=8,
+            min_samples_split=10,
+            max_features=0.2,
+            class_weight="balanced",
+            random_state=42,
+            n_jobs=-1
+        )
+        model.fit(df_train[FEATURES], df_train["Target"])
 
     equipas = sorted(df_test["Equipa_Casa"].unique().tolist())
     tabela_real = {eq: 0 for eq in equipas}
@@ -285,7 +339,7 @@ def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: st
     # Aplicar Feature Decay aos jogos futuros (consistente com treino)
     jogos_futuros_decayed = apply_feature_decay(jogos_futuros)
     X_futuro = jogos_futuros_decayed[FEATURES]
-    probabilidades_futuro = rf_model.predict_proba(X_futuro)
+    probabilidades_futuro = model.predict_proba(X_futuro)
     classes_modelo = le.classes_
 
     # Calcular fator de confiança para informação do frontend
@@ -337,14 +391,132 @@ def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: st
         }
         jogos_futuros_lista.append(jogo)
 
-    # 5. Feature Importance (Top 15)
-    importances = rf_model.feature_importances_
+    # 5. Calcular Métricas de Validação no Passado (Accuracy & Recall)
+    metricas_previsao = {
+        "disponivel": False,
+        "accuracy": 0.0,
+        "jogos_avaliados": 0,
+        "recall": {
+            "H": 0.0,
+            "D": 0.0,
+            "A": 0.0
+        },
+        "detalhes": {}
+    }
+
+    if not jogos_passados.empty:
+        try:
+            # Para evitar Data Leakage (Treino vs Teste), treinamos um modelo de validação auxiliar (model_val)
+            # EXCLUINDO os jogos passados da época atual que serão usados para calcular as métricas.
+            df_train_val = df[df["Epoca"] != epoca_alvo].copy()
+            df_train_val = apply_feature_decay(df_train_val)
+
+            if modelo_alvo == "XGBoost":
+                model_val = XGBClassifier(
+                    objective='multi:softprob',
+                    num_class=3,
+                    n_estimators=100,
+                    learning_rate=0.05,
+                    max_depth=4,
+                    random_state=42,
+                    eval_metric='mlogloss',
+                    n_jobs=-1
+                )
+                sample_weights_val = compute_sample_weight(
+                    class_weight='balanced',
+                    y=df_train_val["Target"]
+                )
+                model_val.fit(df_train_val[FEATURES], df_train_val["Target"], sample_weight=sample_weights_val)
+            elif modelo_alvo == "Decision Tree":
+                model_val = DecisionTreeClassifier(
+                    max_depth=4,
+                    class_weight='balanced',
+                    random_state=42
+                )
+                model_val.fit(df_train_val[FEATURES], df_train_val["Target"])
+            elif modelo_alvo == "Logistic Regression":
+                model_val = LogisticRegression(
+                    solver='lbfgs',
+                    max_iter=1000,
+                    random_state=42,
+                    class_weight='balanced'
+                )
+                model_val.fit(df_train_val[FEATURES], df_train_val["Target"])
+            else:
+                model_val = RandomForestClassifier(
+                    n_estimators=100,
+                    max_depth=4,
+                    min_samples_leaf=8,
+                    min_samples_split=10,
+                    max_features=0.2,
+                    class_weight="balanced",
+                    random_state=42,
+                    n_jobs=-1
+                )
+                model_val.fit(df_train_val[FEATURES], df_train_val["Target"])
+
+            # Selecionar features e target dos jogos passados
+            X_passado = apply_feature_decay(jogos_passados)[FEATURES]
+            y_passado = jogos_passados["Target"].values
+            
+            # Fazer previsões com o modelo de validação out-of-sample (sem leakage)
+            preds_passados = model_val.predict(X_passado)
+            
+            # Accuracy Geral
+            accuracy_geral = float(np.mean(preds_passados == y_passado))
+            
+            # Mapeamento de classes e cálculo de Recall
+            classes_nome = {
+                "H": "Vitórias em Casa (H)",
+                "D": "Empates (D)",
+                "A": "Vitórias Fora (A)"
+            }
+            
+            recall_por_classe = {}
+            for idx, class_label in enumerate(le.classes_):
+                nome = classes_nome.get(class_label, class_label)
+                reais_classe = (y_passado == idx)
+                total_reais = int(np.sum(reais_classe))
+                
+                if total_reais > 0:
+                    acertos_classe = int(np.sum((preds_passados == idx) & reais_classe))
+                    recall_val = float(acertos_classe / total_reais)
+                else:
+                    recall_val = 0.0
+                    
+                recall_por_classe[class_label] = {
+                    "label": nome,
+                    "val": round(recall_val * 100, 1),
+                    "reais": total_reais,
+                    "previstos": int(np.sum(preds_passados == idx))
+                }
+                
+            metricas_previsao = {
+                "disponivel": True,
+                "accuracy": round(accuracy_geral * 100, 1),
+                "jogos_avaliados": len(jogos_passados),
+                "recall": {
+                    "H": recall_por_classe.get("H", {}).get("val", 0.0),
+                    "D": recall_por_classe.get("D", {}).get("val", 0.0),
+                    "A": recall_por_classe.get("A", {}).get("val", 0.0)
+                },
+                "detalhes": recall_por_classe
+            }
+        except Exception as e:
+            print(f"Erro ao calcular métricas de validação: {e}")
+ 
+    # 6. Feature Importance (Top 15)
+    if modelo_alvo == "Logistic Regression":
+        importances = np.mean(np.abs(model.coef_), axis=0)
+    else:
+        importances = model.feature_importances_
+        
     feat_imp = sorted(zip(FEATURES, importances), key=lambda x: x[1], reverse=True)
     total_importance = sum(importances)
     feature_importance = []
     for feat_name, imp in feat_imp[:15]:
         label = FEATURE_LABELS.get(feat_name, feat_name)
-        pct = round((imp / total_importance) * 100, 2)
+        pct = round(float(imp / total_importance) * 100, 2) if total_importance > 0 else 0.0
         feature_importance.append({
             "feature": feat_name,
             "label": label,
@@ -357,7 +529,7 @@ def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: st
         "tempo_execucao": elapsed,
         "jogos_treino": len(df_train),
         "jogos_futuros": len(jogos_futuros),
-        "jornadas_simuladas": f"{jornada_alvo}\u2013{int(jogos_futuros['Jornada'].max())}",
+        "jornadas_simuladas": f"{jornada_alvo}–{int(jogos_futuros['Jornada'].max())}",
         "tabela_real": tabela_real_sorted,
         "probabilidades_titulo": probabilidades_titulo,
         "proximos_jogos": jogos_futuros_lista[:9],  # Primeiros 9 jogos (1 jornada)
@@ -371,5 +543,6 @@ def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: st
                 f"({jogos_na_epoca}/5 jogos na época)"
             ) if decay_ativo else "Features rolling com peso total"
         },
+        "metricas_previsao": metricas_previsao,
     }
 

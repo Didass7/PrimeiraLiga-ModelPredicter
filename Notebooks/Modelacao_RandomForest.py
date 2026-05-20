@@ -26,9 +26,25 @@ from sklearn.preprocessing import LabelEncoder
 # In[2]:
 
 
+def fix_mojibake(text):
+    """Corrige strings com encodings mistos (UTF-8 decodificado incorretamente como Latin-1)."""
+    if not isinstance(text, str):
+        return text
+    try:
+        return text.encode('latin-1').decode('utf-8')
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+
+
 # 1. Carregar Dados
 try:
-    df = pd.read_csv(r"d:\Diogo\Ambiente de Trabalho\PROJETO\Datasets\dataset_features_avancadas.csv", low_memory=False, encoding='utf-8', encoding_errors='replace')
+    df = pd.read_csv(r"d:\Diogo\Ambiente de Trabalho\PROJETO\Datasets\dataset_features_avancadas.csv", low_memory=False, encoding='latin1')
+    
+    # Corrigir mojibake/encoding misto nos nomes das colunas e dados
+    df.columns = [fix_mojibake(col) for col in df.columns]
+    for col in df.select_dtypes(include=['object']).columns:
+        df[col] = df[col].apply(fix_mojibake)
+        
     print("Dataset carregado com sucesso.")
 except FileNotFoundError:
     print("Erro: Ficheiro não encontrado.")
