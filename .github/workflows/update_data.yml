@@ -2,8 +2,8 @@ name: Pipeline de Atualização de Dados (Fim de Época)
 
 on:
   schedule:
-    # Corre todos os verões: Dia 1 de Julho de cada ano às 08:00 UTC
-    - cron: '0 8 1 7 *'
+    # Corre todas as segundas e terças-feiras às 08:00 UTC (dias típicos pós-jornada)
+    - cron: '0 8 * * 1,2'
   workflow_dispatch: # Permite-te iniciar o pipeline manualmente no browser sempre que quiseres
 
 jobs:

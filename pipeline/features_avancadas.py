@@ -57,6 +57,11 @@ def update_advanced_datasets():
         
     df_merged = df_merged.groupby('Season', group_keys=False).apply(compute_jornadas).sort_values('Data').reset_index(drop=True)
     
+    # Restaurar colunas de época caso tenham sido removidas/alteradas pelo groupby
+    df_merged['Season'] = df_merged['Data'].apply(get_season)
+    df_merged['Epoca'] = df_merged['Season']
+    df_merged['Previous_Season'] = df_merged['Season'].apply(lambda x: f"{int(x.split('-')[0])-1}-{int(x.split('-')[0])}")
+    
     # Carregar base histórica de features avançadas para o lookup
     historical_lookup = {}
     cols_avancadas_order = []

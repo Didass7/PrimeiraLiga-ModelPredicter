@@ -366,10 +366,28 @@ andom_state=42\ estava a causar data leakage severo nas minhas estimativas, pois
 - **[REDESIGN DO PAINEL DE CONTROLO]**
   * Redesenhei por completo o Painel de Controlo da aplicação para uma estética mais premium e funcional.
   * **Cards individuais:** Cada parâmetro (Jornada, Simulações, Época, Modelo) vive agora dentro da sua própria card com fundo subtil, bordo e efeito hover interativo verde.
-  * **Header com identidade:** O título do painel inclui agora um ícone emoldurado e um subtítulo descritivo, separados dos controlos por uma linha divisória.
+  * **Header com identidade:** O título do painel includes agora um ícone emoldurado e um subtítulo descritivo, separados dos controlos por uma linha divisória.
   * **Ícones contextuais:** Cada card tem o seu próprio ícone (📅 Jornada, 🔄 Simulações, 🏟️ Época, 🧠 Modelo).
   * **Tipografia corrigida:** Os valores numéricos usam `1.7rem`, enquanto nomes de modelos longos (como "Random Forest") usam uma variante menor (`1.25rem`) para nunca quebrar em duas linhas.
   * **Dropdowns premium:** Seta SVG customizada, focus ring com dupla camada, e emojis nos nomes dos modelos (🌲 🌳 ⚡ 📈).
   * **Grid 2×2:** Substituída a grelha de 4 colunas estreitas por 2×2 em desktop, dando mais espaço horizontal a cada controlo.
   * **Linha gradiente decorativa:** `::before` pseudo-elemento com gradiente verde-dourado de 2px no topo do painel.
+
+## 2026-06-09
+
+- **[REUNIÃO DE REQUISITOS - PIPELINE DINÂMICO SEMANAL]**
+  * Numa reunião de alinhamento, confirmou-se que o site `footballdata.co.uk` disponibiliza atualizações de jogos jornada a jornada. Isto invalidou o requisito inicial do utilizador ter que introduzir dados manualmente a cada semana para a nova época `2026-2027`.
+  * Decidimos adaptar a frequência do pipeline de dados para ser executado semanalmente de forma a obter os resultados das partidas recentes automaticamente, atualizando a simulação e os modelos sem qualquer intervenção do utilizador.
+
+- **[GERAÇÃO DINÂMICA DE ÉPOCAS]**
+  * Modifiquei o script [run_all.py](file:///d:/Diogo/Ambiente de Trabalho/PROJETO/pipeline/run_all.py) substituindo a lista estática de épocas pela função `get_seasons_to_process()`. A lista é agora calculada automaticamente com base no calendário civil (começando em `2425` até à época corrente ou época futura a iniciar).
+  * Incorporei uma verificação de segurança no pipeline (`df_fd.empty`) para que, caso a época futura (ex: `2627`) ainda não tenha jogos ou calendário oficial publicado, o pipeline ignore essa época graciosamente sem causar erros de execução.
+
+- **[AGENDAMENTO AUTOMÁTICO SEMANAL (GITHUB ACTIONS)]**
+  * Atualizei o ficheiro de configuração do CI/CD [update_data.yml](file:///d:/Diogo/Ambiente de Trabalho/PROJETO/.github/workflows/update_data.yml) alterando o cron de execução anual para um agendamento semanal (todas as segundas e terças-feiras às 08:00 UTC). Isto cobre todos os desfechos dos fins de semana e segundas-feiras à noite, atualizando a base de dados.
+
+- **[CORREÇÃO DE BUG PANDAS: KEYERROR 'SEASON']**
+  * Identifiquei e corrigi um bug no cálculo de features avançadas em [features_avancadas.py](file:///d:/Diogo/Ambiente de Trabalho/PROJETO/pipeline/features_avancadas.py), onde a coluna `Season` era eliminada durante a operação `groupby().apply()` dependendo da versão do Pandas instalada. Adicionei lógica de restauração segura após o agrupamento temporal.
+  * Testei o pipeline localmente e verifiquei o funcionamento correto: processou as épocas passadas, ignorou graciosamente a época `2026-2027` (por ainda não ter começado) e completou a sincronização de features avançadas com sucesso.
+
 
