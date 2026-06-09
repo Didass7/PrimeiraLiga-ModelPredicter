@@ -164,7 +164,13 @@ def load_and_prepare_data():
                     team_games[away] = ag + 1
                 season_df["Jornada"] = jornadas
                 return season_df
-            df = df.groupby("Epoca", group_keys=False).apply(compute_jornadas).sort_values("Data").reset_index(drop=True)
+            
+            seasons_dfs = []
+            for ep in df["Epoca"].unique():
+                season_df = df[df["Epoca"] == ep]
+                processed_df = compute_jornadas(season_df)
+                seasons_dfs.append(processed_df)
+            df = pd.concat(seasons_dfs, ignore_index=True).sort_values("Data").reset_index(drop=True)
 
     return df
 
