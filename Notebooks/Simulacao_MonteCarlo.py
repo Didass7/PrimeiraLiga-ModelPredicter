@@ -19,7 +19,10 @@ def fix_mojibake(text):
 
 def load_and_prepare_data():
     try:
-        df = pd.read_csv(r"d:\Diogo\Ambiente de Trabalho\PROJETO\Datasets\dataset_features_avancadas.csv", low_memory=False, encoding='latin1')
+        import os
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        dataset_path = os.path.join(script_dir, "..", "Datasets", "dataset_features_avancadas.csv")
+        df = pd.read_csv(dataset_path, low_memory=False, encoding='latin1')
         
         # Corrigir mojibake/encoding misto nos nomes das colunas e dados
         df.columns = [fix_mojibake(col) for col in df.columns]

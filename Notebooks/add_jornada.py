@@ -1,7 +1,9 @@
+import os
 import pandas as pd
 import numpy as np
 
-file_path = 'd:/Diogo/Ambiente de Trabalho/PROJETO/Datasets/dataset_final_merged_v2.csv'
+script_dir = os.path.dirname(os.path.abspath(__file__))
+file_path = os.path.join(script_dir, '..', 'Datasets', 'dataset_final_merged_v2.csv')
 print(f"Lendo {file_path}...")
 df = pd.read_csv(file_path)
 
