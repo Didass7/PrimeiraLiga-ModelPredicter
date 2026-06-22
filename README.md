@@ -1,4 +1,4 @@
-# ⚽ Liga Predictor — Previsão da Primeira Liga com Machine Learning
+# Liga Predictor — Previsão da Primeira Liga com Machine Learning
 
 Este repositório contém o projeto de fim de curso para a **Licenciatura em Engenharia Informática**, focado na aplicação de técnicas avançadas de *Data Science*, *Machine Learning* e Simulação Estocástica de Monte Carlo para prever os desfechos dos jogos e projetar a tabela final da **Primeira Liga Portuguesa** de futebol.
 
@@ -6,7 +6,7 @@ O projeto inclui um pipeline de dados automatizado (ETL), modelagem estatística
 
 ---
 
-## 🚀 Funcionalidades Principais
+## Funcionalidades Principais
 
 *   **Pipeline de Dados Automatizado (ETL):** Integração automática com dados do *football-data.co.uk* e *FBRef* via GitHub Actions (correndo semanalmente) para manter os dados atualizados com os resultados de jogos reais e recalcular 16 *features* avançadas de forma automática.
 *   **Modelos Preditivos de ML:** Implementação comparativa dos algoritmos **XGBoost**, **Random Forest**, **Regressão Logística** e **Árvore de Decisão** treinados com mais de 20 anos de dados históricos.
@@ -15,7 +15,7 @@ O projeto inclui um pipeline de dados automatizado (ETL), modelagem estatística
 
 ---
 
-## 📂 Estrutura do Repositório
+## Estrutura do Repositório
 
 O repositório está organizado de forma clara e modular:
 
@@ -47,7 +47,7 @@ O repositório está organizado de forma clara e modular:
 
 ---
 
-## 🛠️ Configuração e Instalação Local
+## Configuração e Instalação Local
 
 Siga os passos abaixo para configurar e correr o projeto na sua máquina:
 
@@ -77,7 +77,7 @@ O servidor ficará disponível localmente em: **[http://localhost:8000](http://l
 
 ---
 
-## 📈 Pipeline de Dados (ETL)
+## Pipeline de Dados (ETL)
 
 O pipeline recolhe automaticamente dados de novos jogos concluídos e atualiza a base de dados. Caso deseje executar manualmente e de forma imediata o pipeline:
 ```bash
@@ -86,7 +86,7 @@ python pipeline/run_all.py
 
 ---
 
-## 🔬 Scripts de Análise e Diagnóstico
+## Scripts de Análise e Diagnóstico
 
 Na pasta `scripts/` encontram-se programas úteis para validar o backend e avaliar o desempenho comparativo dos modelos de Machine Learning:
 
@@ -105,7 +105,7 @@ Na pasta `scripts/` encontram-se programas úteis para validar o backend e avali
 
 ---
 
-## 📐 Detalhes Técnicos e Metodologia
+## Detalhes Técnicos e Metodologia
 
 1.  **Métricas Avançadas:**
     *   *Rating Elo:* Um sistema dinâmico que atualiza a força relativa de cada equipa com base na dificuldade do adversário.
