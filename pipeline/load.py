@@ -65,11 +65,10 @@ def calculate_rolling_features(df, window=5):
 
 def append_new_matches(df_new, target_file_path):
     """
-    Carrega o dataset histórico existente, identifica novos jogos (com data superior
-    ao jogo mais recente no histórico), anexa-os de forma idempotente e recalcula
-    as rolling features antes de salvar na codificação Latin-1.
+    Carrega o dataset histórico existente, atualiza os resultados dos jogos pre-carregados
+    (que estavam como NaN/futuros) e anexa novos jogos posteriores, recalculando as rolling features.
     """
-    print(f"[Load] A iniciar processo de gravação para: {target_file_path}")
+    print(f"[Load] A iniciar processo de atualizacao/gravacao para: {target_file_path}")
     
     if df_new is None or df_new.empty:
         print("[Load] Aviso: Sem novos dados para carregar.")
@@ -77,7 +76,7 @@ def append_new_matches(df_new, target_file_path):
         
     # Se o ficheiro ainda não existir, inicializa de raiz
     if not os.path.exists(target_file_path):
-        print(f"[Load] Ficheiro destino não existe. A criar novo em {target_file_path}")
+        print(f"[Load] Ficheiro destino nao existe. A criar novo em {target_file_path}")
         df_new_enriched = calculate_rolling_features(df_new)
         df_new_enriched.to_csv(target_file_path, index=False, encoding='latin1')
         return True
@@ -86,32 +85,77 @@ def append_new_matches(df_new, target_file_path):
         # Carregar dataset histórico usando latin1
         df_existing = pd.read_csv(target_file_path, low_memory=False, encoding='latin1')
         
-        # Assegurar formato datetime
+        # Assegurar formato datetime e strings
         df_existing['Data'] = pd.to_datetime(df_existing['Data'], errors='coerce')
         df_new['Data'] = pd.to_datetime(df_new['Data'], errors='coerce')
         
-        # Determinar a data do jogo mais recente no histórico
-        max_date_existing = df_existing['Data'].max()
-        print(f"[Load] Data do jogo mais recente no histórico: {max_date_existing}")
+        df_existing['Equipa_Casa'] = df_existing['Equipa_Casa'].astype(str).str.strip()
+        df_existing['Equipa_Visitante'] = df_existing['Equipa_Visitante'].astype(str).str.strip()
+        df_new['Equipa_Casa'] = df_new['Equipa_Casa'].astype(str).str.strip()
+        df_new['Equipa_Visitante'] = df_new['Equipa_Visitante'].astype(str).str.strip()
+
+        # 1. Atualizar jogos existentes que estavam sem resultado (NaN) e agora têm resultado
+        updated_count = 0
         
-        # Filtrar apenas os jogos posteriores a essa data
+        # Criar chaves únicas temporárias baseadas na Época e equipas (já que cada confronto só acontece uma vez por época em casa)
+        df_existing['match_key'] = df_existing['Epoca'].astype(str) + "_" + df_existing['Equipa_Casa'] + "_" + df_existing['Equipa_Visitante']
+        df_new['match_key'] = df_new['Epoca'].astype(str) + "_" + df_new['Equipa_Casa'] + "_" + df_new['Equipa_Visitante']
+        
+        # Filtrar jogos em df_new que têm resultado
+        df_new_played = df_new[df_new['Resultado_Final'].notna()]
+        
+        if not df_new_played.empty:
+            new_played_dict = df_new_played.set_index('match_key').to_dict('index')
+            
+            # Atualizar colunas de resultado e data no df_existing
+            cols_to_update = [
+                'Data', 'Golos_Casa_Final', 'Golos_Visitante_Final', 'Resultado_Final',
+                'Golos_Casa_Intervalo', 'Golos_Visitante_Intervalo', 'Resultado_Intervalo',
+                'Remates_Casa', 'Remates_Visitante', 'Remates_Alvo_Casa', 'Remates_Alvo_Visitante',
+                'Faltas_Casa', 'Faltas_Visitante', 'Cantos_Casa', 'Cantos_Visitante',
+                'Amarelos_Casa', 'Amarelos_Visitante', 'HR', 'AR',
+                'Odd_Casa_Bet365', 'Odd_Empate_Bet365', 'Odd_Visitante_Bet365',
+                'Odd_Casa_Media', 'Odd_Empate_Media', 'Odd_Visitante_Media'
+            ]
+            
+            for idx, row in df_existing.iterrows():
+                key = row['match_key']
+                if key in new_played_dict and pd.isna(row['Resultado_Final']):
+                    new_val = new_played_dict[key]
+                    for col in cols_to_update:
+                        if col in new_val and col in df_existing.columns:
+                            df_existing.at[idx, col] = new_val[col]
+                    updated_count += 1
+                    
+        # Limpar match_key
+        df_existing.drop(columns=['match_key'], inplace=True)
+        df_new.drop(columns=['match_key'], inplace=True)
+        
+        if updated_count > 0:
+            print(f"[Load] Atualizados os resultados de {updated_count} jogos pre-existentes.")
+            
+        # 2. Identificar novos jogos para anexar (com data superior à máxima existente)
+        max_date_existing = df_existing['Data'].max()
         df_to_append = df_new[df_new['Data'] > max_date_existing]
         
-        if df_to_append.empty:
-            print("[Load] Tudo atualizado! Não há novos jogos para anexar.")
+        has_changes = (updated_count > 0) or (not df_to_append.empty)
+        
+        if not has_changes:
+            print("[Load] Tudo atualizado! Sem novos jogos ou resultados para gravar.")
             return True
             
-        print(f"[Load] Encontrados {len(df_to_append)} novos jogos para anexar.")
-        
-        # Concatenar dados novos e antigos
-        df_final = pd.concat([df_existing, df_to_append], ignore_index=True)
-        
-        # Recalcular as médias móveis em todo o histórico combinado
+        if not df_to_append.empty:
+            print(f"[Load] Encontrados {len(df_to_append)} novos jogos para anexar.")
+            df_final = pd.concat([df_existing, df_to_append], ignore_index=True)
+        else:
+            df_final = df_existing
+            
+        # Recalcular as médias móveis em todo o histórico
         df_final_enriched = calculate_rolling_features(df_final)
-        
-        # Re-ordenar temporalmente e restaurar formato de string de data se desejado,
-        # ou gravar diretamente como datetime (pandas grava no formato YYYY-MM-DD)
         df_final_enriched = df_final_enriched.sort_values('Data').reset_index(drop=True)
+        
+        # Converter coluna de data para string YYYY-MM-DD
+        df_final_enriched['Data'] = df_final_enriched['Data'].dt.strftime('%Y-%m-%d')
         
         # Gravar de volta em Latin-1
         df_final_enriched.to_csv(target_file_path, index=False, encoding='latin1')

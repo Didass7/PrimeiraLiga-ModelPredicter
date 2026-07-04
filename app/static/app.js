@@ -415,7 +415,7 @@ function renderFeatureImportance(features, decay) {
     container.innerHTML = "";
 
     if (!features || features.length === 0) {
-        container.innerHTML = '<p style="color: var(--text-muted)">Sem dados de importância de features.</p>';
+        container.innerHTML = '<p style="color: var(--text-muted)">Sem dados de importância das variáveis.</p>';
         return;
     }
 

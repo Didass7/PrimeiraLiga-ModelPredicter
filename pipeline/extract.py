@@ -85,7 +85,25 @@ def extract_fbref(season: str):
             options.add_argument('--no-sandbox')
             options.add_argument('--disable-dev-shm-usage')
 
-        driver = uc.Chrome(options=options)
+        driver = None
+        try:
+            import winreg
+            key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Google\Chrome\BLBeacon")
+            version, _ = winreg.QueryValueEx(key, "version")
+            chrome_major_version = int(version.split('.')[0])
+            print(f"[Extract] Versao do Chrome detetada no registry: {chrome_major_version}")
+            driver = uc.Chrome(version_main=chrome_major_version, options=options)
+        except Exception as reg_err:
+            print(f"[Extract] Erro ao obter versao do Chrome via registry: {reg_err}")
+            
+        if driver is None:
+            try:
+                print("[Extract] A tentar inicializar uc.Chrome com version_main=149...")
+                driver = uc.Chrome(version_main=149, options=options)
+            except Exception as v149_err:
+                print(f"[Extract] Erro ao inicializar com version_main=149: {v149_err}")
+                print("[Extract] A tentar inicializar uc.Chrome com configuracoes padrao...")
+                driver = uc.Chrome(options=options)
         
         for url in urls_to_try:
             print(f"[Extract] A tentar descarregar de: {url}")

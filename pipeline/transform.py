@@ -28,7 +28,19 @@ TEAM_NAME_MAPPING = {
     "Paos de Ferreira": "Paços de Ferreira",
     "Vitria Guimares": "Vitória",
     "Olhannse": "Olhanense",
-    "Naval": "Naval 1º de Maio"
+    "Naval": "Naval 1º de Maio",
+    "Sporting": "Sporting CP",
+    "FC Famalicão": "Famalicão",
+    "Est. Amadora": "Estrela",
+    "Estoril Praia": "Estoril",
+    "Casa Pia AC": "Casa Pia",
+    "SC Braga": "Braga",
+    "FC Porto": "Porto",
+    "FC Alverca": "Alverca",
+    "Académico": "Académico de Viseu",
+    "Vitória SC": "Vitória",
+    "FC Arouca": "Arouca",
+    "Academico": "Académico de Viseu"
 }
 
 # Caminhos

@@ -172,6 +172,23 @@ def load_and_prepare_data():
                 seasons_dfs.append(processed_df)
             df = pd.concat(seasons_dfs, ignore_index=True).sort_values("Data").reset_index(drop=True)
 
+    # Preencher NaNs nas colunas de features para evitar que jogos futuros sejam descartados
+    for col in FEATURES:
+        if col in df.columns:
+            if col in ROLLING_FEATURES:
+                df[col] = df[col].fillna(0.0)
+            else:
+                if col == "Casa_Elo_PreJogo" or col == "Visitante_Elo_PreJogo":
+                    df[col] = df[col].fillna(1500.0)
+                elif col == "Diff_Elo":
+                    df[col] = df[col].fillna(0.0)
+                elif col == "Casa_ExpectedGolos" or col == "Visitante_ExpectedGolos":
+                    df[col] = df[col].fillna(1.2)
+                elif col == "Prob_Empate_Poisson":
+                    df[col] = df[col].fillna(0.27)
+                else:
+                    df[col] = df[col].fillna(0.0)
+
     return df
 
 
@@ -205,7 +222,17 @@ def get_info():
     df = df.dropna(subset=FEATURES).copy()
 
     # Obter todas as épocas disponíveis ordenadas cronologicamente
-    epocas = sorted(df["Epoca"].dropna().unique().tolist())
+    all_epocas = sorted(df["Epoca"].dropna().unique().tolist())
+    
+    # Verificar se a época 2026-2027 já tem algum jogo com resultado
+    df_2627 = df[df["Epoca"] == "2026-2027"]
+    has_2627_started = not df_2627.empty and df_2627["Resultado_Final"].notna().any()
+    
+    epocas = []
+    for ep in all_epocas:
+        if ep == "2026-2027" and not has_2627_started:
+            continue
+        epocas.append(ep)
 
     # Montar informação detalhada para cada época disponível
     detalhes_epocas = {}
@@ -217,6 +244,17 @@ def get_info():
         
         jornada_min = int(df_ep["Jornada"].min())
         jornada_max = int(df_ep["Jornada"].max())
+        
+        # Regra especial para época em progresso (2026-2027)
+        if ep == "2026-2027":
+            played_jornadas = df_ep[df_ep["Resultado_Final"].notna()]["Jornada"]
+            if not played_jornadas.empty:
+                max_played = int(played_jornadas.max())
+                jornada_min = 1
+                jornada_max = max_played
+            else:
+                jornada_min = 1
+                jornada_max = 1
         
         detalhes_epocas[ep] = {
             "equipas": equipas_ep,
@@ -260,7 +298,8 @@ def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: st
 
     # Preparar Target
     le = LabelEncoder()
-    df["Target"] = le.fit_transform(df["Resultado_Final"])
+    le.fit(['A', 'D', 'H'])
+    df["Target"] = le.transform(df["Resultado_Final"].fillna('D'))
 
     # 1. Separar dados de treino (excluindo a época alvo) e teste (época alvo)
     df_train = df[df["Epoca"] != epoca_alvo].copy()
@@ -385,17 +424,34 @@ def run_simulation(jornada_alvo: int, num_simulacoes: int = 1000, epoca_alvo: st
 
     # Detalhes dos jogos futuros para contexto
     jogos_futuros_lista = []
-    for idx_jogo, (_, row) in enumerate(jogos_futuros.iterrows()):
-        probs = probabilidades_futuro[idx_jogo]
-        jogo = {
-            "casa": row["Equipa_Casa"],
-            "fora": row["Equipa_Visitante"],
-            "jornada": int(row["Jornada"]),
-            "prob_casa": round(float(probs[list(classes_modelo).index("H")]) * 100, 1) if "H" in classes_modelo else 0,
-            "prob_empate": round(float(probs[list(classes_modelo).index("D")]) * 100, 1) if "D" in classes_modelo else 0,
-            "prob_fora": round(float(probs[list(classes_modelo).index("A")]) * 100, 1) if "A" in classes_modelo else 0,
-        }
-        jogos_futuros_lista.append(jogo)
+    if epoca_alvo == "2025-2026" and jornada_alvo == 34:
+        df_next = df[(df["Epoca"] == "2026-2027") & (df["Jornada"] == 1)].copy()
+        if not df_next.empty:
+            X_next = apply_feature_decay(df_next)[FEATURES]
+            probs_next = model.predict_proba(X_next)
+            for idx_jogo, (_, row) in enumerate(df_next.iterrows()):
+                probs = probs_next[idx_jogo]
+                jogo = {
+                    "casa": row["Equipa_Casa"],
+                    "fora": row["Equipa_Visitante"],
+                    "jornada": 1,
+                    "prob_casa": round(float(probs[list(classes_modelo).index("H")]) * 100, 1) if "H" in classes_modelo else 0,
+                    "prob_empate": round(float(probs[list(classes_modelo).index("D")]) * 100, 1) if "D" in classes_modelo else 0,
+                    "prob_fora": round(float(probs[list(classes_modelo).index("A")]) * 100, 1) if "A" in classes_modelo else 0,
+                }
+                jogos_futuros_lista.append(jogo)
+    else:
+        for idx_jogo, (_, row) in enumerate(jogos_futuros.iterrows()):
+            probs = probabilidades_futuro[idx_jogo]
+            jogo = {
+                "casa": row["Equipa_Casa"],
+                "fora": row["Equipa_Visitante"],
+                "jornada": int(row["Jornada"]),
+                "prob_casa": round(float(probs[list(classes_modelo).index("H")]) * 100, 1) if "H" in classes_modelo else 0,
+                "prob_empate": round(float(probs[list(classes_modelo).index("D")]) * 100, 1) if "D" in classes_modelo else 0,
+                "prob_fora": round(float(probs[list(classes_modelo).index("A")]) * 100, 1) if "A" in classes_modelo else 0,
+            }
+            jogos_futuros_lista.append(jogo)
 
     # 5. Calcular Métricas de Validação no Passado (Accuracy & Recall)
     metricas_previsao = {
