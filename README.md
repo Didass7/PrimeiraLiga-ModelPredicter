@@ -64,7 +64,6 @@ python -m venv .venv
 # Ativar ambiente virtual (Windows)
 .venv\Scripts\activate
 
-# Instalar dependências
 pip install -r requirements.txt
 ```
 
@@ -83,27 +82,6 @@ O pipeline recolhe automaticamente dados de novos jogos concluídos e atualiza a
 ```bash
 python pipeline/run_all.py
 ```
-
----
-
-## Scripts de Análise e Diagnóstico
-
-Na pasta `scripts/` encontram-se programas úteis para validar o backend e avaliar o desempenho comparativo dos modelos de Machine Learning:
-
-*   **Testar Simulação do Backend:**
-    ```bash
-    python scripts/check_backend_simulation.py
-    ```
-*   **Investigar Desempenho dos Modelos (Métricas Globais):**
-    ```bash
-    python scripts/investigate_all_models.py
-    ```
-*   **Avaliação na Época Alvo (Jornada 17):**
-    ```bash
-    python scripts/investigate_jornada17_metrics.py
-    ```
-
----
 
 ## Detalhes Técnicos e Metodologia
 
